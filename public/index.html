@@ -9,17 +9,32 @@
   svg{display:block;width:100%;height:100%}
   .hand{font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
 
-  /* ---- topic bar (auto-hides while drawing so recordings stay clean) ---- */
+  /* ---- top bar (auto-hides while drawing so recordings stay clean) ---- */
   #bar{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:5;
-    transition:opacity .5s, transform .5s}
-  #bar.hidden{opacity:0;transform:translateX(-50%) translateY(-56px);pointer-events:none}
-  #topic{width:min(520px,60vw);padding:12px 18px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;
+    align-items:center;transition:opacity .5s, transform .5s}
+  #bar.hidden{opacity:0;transform:translateX(-50%) translateY(-64px);pointer-events:none}
+  #topic{width:min(430px,46vw);padding:12px 18px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;
     background:#fff;outline:none;font-family:inherit;color:var(--ink)}
-  #go{padding:12px 22px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;background:var(--ink);
-    color:#fff;cursor:pointer;font-family:inherit}
-  #go:hover{background:#000}
-  #hint{position:absolute;bottom:14px;right:20px;font-size:13px;color:#b9b2a6;z-index:5;transition:opacity .5s}
+  .btn{padding:12px 18px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;background:#fff;
+    color:var(--ink);cursor:pointer;font-family:inherit;user-select:none}
+  .btn.dark{background:var(--ink);color:#fff}
+  .btn.dark:hover{background:#000}
+  #mic.listening{background:#e23b3b;border-color:#e23b3b;color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,59,59,.5)}50%{box-shadow:0 0 0 12px rgba(226,59,59,0)}}
+  #cam.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  #hint{position:absolute;bottom:14px;right:224px;font-size:13px;color:#b9b2a6;z-index:5;transition:opacity .5s}
   .hidden{opacity:0;pointer-events:none}
+
+  /* ---- status chip (near mascot, visible even while bar is hidden) ---- */
+  #status{position:absolute;left:26px;top:22px;z-index:4;font-size:15px;color:var(--muted);
+    background:#fff;border:2px solid #e5e0d6;border-radius:10px;padding:6px 12px;opacity:0;transition:opacity .3s}
+  #status.on{opacity:1}
+
+  /* ---- camera bubble (your face, in the recording, streamer-style) ---- */
+  #campod{position:absolute;right:22px;bottom:22px;width:184px;height:184px;border-radius:50%;overflow:hidden;
+    border:4px solid var(--ink);box-shadow:6px 8px 0 rgba(28,28,28,.14);z-index:4;background:#0c0c0c;display:none}
+  #campod.on{display:block}
+  #campod video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 
   /* ---- mascot ---- */
   .breathe{transform-box:fill-box;transform-origin:center bottom;animation:br 3s ease-in-out infinite}
@@ -39,19 +54,28 @@
   #armPoint{opacity:0;transition:opacity .3s}
   .pointing #armPoint{opacity:1}
   .pointing #armRest{opacity:0}
+  /* listening ears: little sound arcs by the mascot while you talk */
+  #hearing{opacity:0;transition:opacity .3s}
+  #hearing.on{opacity:1}
+  #hearing path{animation:tdot 1s infinite}
+  #hearing path:nth-child(2){animation-delay:.25s}
 
   /* ---- speech caption ---- */
-  #saywrap{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);max-width:72%;z-index:4;
+  #saywrap{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);max-width:64%;z-index:4;
     background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 22px;font-size:24px;color:var(--ink);
     box-shadow:5px 6px 0 rgba(28,28,28,.14);opacity:0;transition:opacity .3s}
   #saywrap.on{opacity:1}
+  #saywrap.you{border-color:#c9c2b4;color:var(--muted);font-size:20px}
 </style></head>
 <body>
 <div id="stagewrap">
   <div id="bar">
-    <input id="topic" class="hand" placeholder="ask me anything… (e.g. how do neural nets learn?)" autocomplete="off">
-    <button id="go">draw it</button>
+    <input id="topic" class="hand" placeholder="type… or hold SPACE and talk" autocomplete="off">
+    <button id="go" class="btn dark">draw it</button>
+    <button id="mic" class="btn" title="hold to talk (or hold SPACE)">🎤 hold</button>
+    <button id="cam" class="btn" title="camera bubble on/off">📷</button>
   </div>
+  <div id="status" class="hand"></div>
 
   <svg id="stage" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
     <rect width="1600" height="900" fill="#ffffff"/>
@@ -75,10 +99,15 @@
         <ellipse cx="72" cy="8" rx="52" ry="30" fill="none" stroke="#1c1c1c" stroke-width="3"/>
         <g class="dots" fill="#1c1c1c"><circle cx="52" cy="8" r="4.5"/><circle cx="72" cy="8" r="4.5"/><circle cx="92" cy="8" r="4.5"/></g>
       </g>
+      <g id="hearing" transform="translate(230,270)" fill="none" stroke="#e8730c" stroke-width="3.4" stroke-linecap="round">
+        <path d="M0,0 C10,10 10,26 0,36"/>
+        <path d="M16,-8 C32,8 32,36 16,52"/>
+      </g>
     </g>
   </svg>
 
   <div id="saywrap" class="hand"><span id="saytext"></span></div>
+  <div id="campod"><video id="camvid" autoplay playsinline muted></video></div>
   <div id="hint">inkling-live · your agent is the artist</div>
 </div>
 
@@ -88,8 +117,12 @@ const stage=document.getElementById('drawing');
 const mascot=document.getElementById('mascot');
 const inner=document.getElementById('mascotInner');
 const bubble=document.getElementById('thinkbubble');
+const hearing=document.getElementById('hearing');
 const say=document.getElementById('saywrap'), sayText=document.getElementById('saytext');
-const bar=document.getElementById('bar'), hint=document.getElementById('hint');
+const bar=document.getElementById('bar'), hint=document.getElementById('hint'), status=document.getElementById('status');
+const campod=document.getElementById('campod'), camvid=document.getElementById('camvid');
+
+function setStatus(t){ if(!t){status.classList.remove('on');return;} status.textContent=t; status.classList.add('on'); }
 
 /* ---------- mascot poses ---------- */
 function pose(p){
@@ -122,13 +155,13 @@ async function writeOn(t,dur){
   await sleep(d+60);
 }
 
-/* ---------- op handlers (the protocol) ---------- */
+/* ---------- op handlers ---------- */
 const H={
-  async say(c){ sayText.textContent=''; say.classList.add('on');
+  async say(c){ say.classList.remove('you'); sayText.textContent=''; say.classList.add('on');
     for(const ch of String(c.text||'')){ sayText.textContent+=ch; await sleep(24);} await sleep(500); },
   async mascot(c){ pose(c.pose||'idle'); await sleep(300); },
   async title(c){ const t=el('text',{x:960,y:150,'text-anchor':'middle','font-size':56,fill:'#1c1c1c',
-      transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`}); t.classList.add('hand');
+      transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`});
     t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||''; await writeOn(t); },
   async path(c){ await drawOn(el('path',{d:c.d,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c',
       'stroke-width':c.width||4,'stroke-linecap':'round','stroke-linejoin':'round'}),c.dur); },
@@ -145,23 +178,81 @@ const H={
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
   async clear(){ stage.style.transition='opacity .5s'; stage.style.opacity=0; await sleep(520);
     stage.innerHTML=''; stage.style.transition='none'; stage.style.opacity=1; },
-  async done(){ pose('happy'); await sleep(1200); say.classList.remove('on'); bar.classList.remove('hidden'); hint.classList.remove('hidden'); },
-  async _status(c){ if(c.state==='thinking'){ pose('think'); bar.classList.add('hidden'); hint.classList.add('hidden'); } },
+  async done(){ pose('happy'); await sleep(1200); say.classList.remove('on'); setStatus('');
+    bar.classList.remove('hidden'); hint.classList.remove('hidden'); },
+  async _status(c){
+    if(c.state==='transcribing'){ setStatus('👂 heard you — transcribing…'); }
+    if(c.state==='heard'){ say.classList.add('you','on'); sayText.textContent='🎤 “'+c.text+'”'; setStatus(''); }
+    if(c.state==='thinking'){ pose('think'); setStatus('✏️ thinking…'); bar.classList.add('hidden'); hint.classList.add('hidden'); }
+    if(c.state==='drawing'){ setStatus(''); say.classList.remove('you'); }
+  },
 };
 
-/* ---------- queue player: ops arrive fast, we PLAY them at drawing pace ---------- */
+/* ---------- queue player ---------- */
 const q=[]; let playing=false;
 async function pump(){ if(playing) return; playing=true;
   while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} } }
   playing=false; }
-
-/* ---------- wiring ---------- */
 const ws=new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage=ev=>{ try{ q.push(JSON.parse(ev.data)); pump(); }catch(e){} };
+
+/* ---------- camera bubble + frame capture ---------- */
+let camStream=null;
+async function toggleCam(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; campod.classList.remove('on');
+    document.getElementById('cam').classList.remove('on'); return; }
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:640},audio:false});
+    camvid.srcObject=camStream; campod.classList.add('on'); document.getElementById('cam').classList.add('on');
+  }catch(e){ setStatus('camera blocked: '+e.name); setTimeout(()=>setStatus(''),2500); }
+}
+function grabFrame(){
+  if(!camStream) return null;
+  const c=document.createElement('canvas'); c.width=camvid.videoWidth||640; c.height=camvid.videoHeight||640;
+  c.getContext('2d').drawImage(camvid,0,0);
+  return c.toDataURL('image/jpeg',0.85);
+}
+
+/* ---------- ask: typed ---------- */
 async function ask(){ const v=document.getElementById('topic').value.trim(); if(!v) return;
   stage.innerHTML=''; say.classList.remove('on');
-  await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:v})}); }
+  await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({topic:v,frame:grabFrame()})}); }
 document.getElementById('go').onclick=ask;
 document.getElementById('topic').addEventListener('keydown',e=>{ if(e.key==='Enter') ask(); });
+
+/* ---------- ask: voice (hold SPACE or hold the mic button) ---------- */
+let rec=null, chunks=[], micStream=null, listening=false;
+async function startTalk(){
+  if(listening) return;
+  try{ micStream=micStream||await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ setStatus('mic blocked: '+e.name); setTimeout(()=>setStatus(''),2500); return; }
+  listening=true; chunks=[];
+  rec=new MediaRecorder(micStream,{mimeType:'audio/webm'});
+  rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+  rec.start();
+  document.getElementById('mic').classList.add('listening');
+  hearing.classList.add('on'); setStatus('🔴 listening… release to ask');
+}
+async function stopTalk(){
+  if(!listening) return; listening=false;
+  document.getElementById('mic').classList.remove('listening');
+  hearing.classList.remove('on'); setStatus('');
+  await new Promise(r=>{ rec.onstop=r; rec.stop(); });
+  const blob=new Blob(chunks,{type:'audio/webm'});
+  if(blob.size<2000) return; // too short — ignore
+  const fr=new FileReader();
+  const dataUrl=await new Promise(r=>{ fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
+  stage.innerHTML=''; say.classList.remove('on');
+  await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({audio:dataUrl,frame:grabFrame()})});
+}
+const micBtn=document.getElementById('mic');
+micBtn.addEventListener('mousedown',startTalk);
+micBtn.addEventListener('mouseup',stopTalk);
+micBtn.addEventListener('mouseleave',()=>{ if(listening) stopTalk(); });
+window.addEventListener('keydown',e=>{ if(e.code==='Space' && document.activeElement.id!=='topic' && !e.repeat){ e.preventDefault(); startTalk(); }});
+window.addEventListener('keyup',e=>{ if(e.code==='Space' && document.activeElement.id!=='topic'){ e.preventDefault(); stopTalk(); }});
+document.getElementById('cam').onclick=toggleCam;
 </script>
 </body></html>

@@ -1,19 +1,21 @@
-// inkling-live — local server: takes a topic, spawns the `claude` CLI (your existing
-// subscription — no API key), parses the NDJSON draw-commands out of its streaming
-// output, and broadcasts each command over WebSocket to the stage page, which draws
-// them stroke-by-stroke. The recording you make of that window IS the content.
+// inkling-live — local server: hears you (Whisper, local), sees you (camera frame →
+// Claude vision), and streams the agent's NDJSON draw-commands over WebSocket to the
+// stage, which draws them stroke-by-stroke. Record the window = the content. No API key —
+// it drives your existing `claude` CLI.
 const express = require('express');
 const { WebSocketServer } = require('ws');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const PORT = process.env.PORT || 4141;
 const MODEL = process.env.LIVE_MODEL || 'sonnet'; // fast first stroke; override with LIVE_MODEL
 const LOG = path.join(__dirname, 'last-run.ndjson');
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'inkling-live-'));
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '40mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const server = app.listen(PORT, () =>
@@ -23,15 +25,36 @@ const clients = new Set();
 wss.on('connection', ws => { clients.add(ws); ws.on('close', () => clients.delete(ws)); });
 const cast = obj => { const s = JSON.stringify(obj); for (const c of clients) { try { c.send(s); } catch (e) {} } };
 
-// ---- the drawing brain's instructions (the whole "authoring" contract) ----
-const BRAIN = (topic) => `You are the live drawing brain of a hand-drawn explainer mascot.
-Explain this topic visually: "${topic}"
+// ---- persistent Whisper worker (model loads once; ~0.6s per transcription after) ----
+let whisper = null, whisperReady = false, whisperQueue = [];
+function bootWhisper() {
+  whisper = spawn('python3', [path.join(__dirname, 'whisper_worker.py')], { stdio: ['pipe', 'pipe', 'pipe'] });
+  let rest = '';
+  whisper.stdout.on('data', d => {
+    rest += d.toString();
+    const lines = rest.split('\n'); rest = lines.pop();
+    for (const l of lines) {
+      if (!l.trim()) continue;
+      let m; try { m = JSON.parse(l); } catch (e) { continue; }
+      if (m.ready) { whisperReady = true; console.log('[whisper] ready (base model loaded)'); continue; }
+      const cb = whisperQueue.shift(); if (cb) cb(m);
+    }
+  });
+  whisper.stderr.on('data', () => {});
+  whisper.on('close', () => { whisperReady = false; console.log('[whisper] worker died — restarting'); setTimeout(bootWhisper, 1000); });
+}
+bootWhisper();
+const transcribe = audioPath => new Promise(resolve => { whisperQueue.push(resolve); whisper.stdin.write(audioPath + '\n'); });
 
-OUTPUT FORMAT — CRITICAL: output ONLY newline-delimited JSON commands (NDJSON). No prose,
-no markdown fences, no commentary. Every line is one JSON object. Nothing else.
+// ---- the drawing brain's contract ----
+const BRAIN = (topic, framePath) => `You are the live drawing brain of a hand-drawn explainer mascot, performing on screen while the user records.
+${framePath ? `THE USER'S CAMERA IS ON. FIRST use the Read tool to open ${framePath} — it is the live camera/screen frame from this exact moment. Look at it. Your FIRST "say" line must react naturally to something you actually SEE (the person, their gesture, the object or screen they're showing). Weave what you see into the explainer where it helps.` : ''}
+The user asked (spoken aloud): "${topic}"
+
+OUTPUT FORMAT — CRITICAL: ${framePath ? 'after Reading the frame, ' : ''}output ONLY newline-delimited JSON commands (NDJSON). No prose, no markdown fences. Every line is one JSON object.
 
 Canvas: 1600x900, white paper. Hand-drawn ink style: black #1c1c1c strokes, orange #e8730c
-accent (use sparingly, for THE key thing), muted #7a7164 for secondary labels.
+accent (sparingly, for THE key thing), muted #7a7164 for secondary labels.
 The mascot lives on the LEFT (x < 330). Draw ONLY in x:360-1560, y:90-800.
 
 Structure: 3-5 visual BEATS. One idea per beat. LESS TEXT, MORE SHAPES — boxes, arrows,
@@ -41,7 +64,7 @@ Commands (one per line):
 {"op":"say","text":"short spoken line, <=12 words"}     mascot speech caption
 {"op":"mascot","pose":"think"}                           poses: think | point | happy | idle
 {"op":"title","text":"the title"}
-{"op":"path","d":"M 400 300 C ...","stroke":"#1c1c1c","width":4,"dur":900}   freehand SVG path, slightly wobbly (use gentle C curves, never ruler-straight)
+{"op":"path","d":"M 400 300 C ...","stroke":"#1c1c1c","width":4,"dur":900}   freehand SVG path, slightly wobbly (gentle C curves, never ruler-straight)
 {"op":"circle","cx":800,"cy":400,"r":60,"stroke":"#e8730c","width":4}
 {"op":"rect","x":700,"y":300,"w":220,"h":90,"rx":12,"stroke":"#1c1c1c","width":4}
 {"op":"arrow","x1":500,"y1":400,"x2":700,"y2":400,"stroke":"#1c1c1c"}
@@ -57,35 +80,24 @@ say, then {"op":"done"}.`;
 
 let child = null;
 
-app.post('/ask', (req, res) => {
-  const topic = String(req.body.topic || '').trim();
-  if (!topic) return res.status(400).json({ error: 'no topic' });
+function runBrain(topic, framePath) {
   if (child) { try { child.kill('SIGTERM'); } catch (e) {} child = null; }
-
   fs.writeFileSync(LOG, '');
   cast({ op: '_status', state: 'thinking', topic });
-  console.log(`[ask] "${topic}" → claude (${MODEL})`);
+  console.log(`[ask] "${topic}"${framePath ? ' +frame' : ''} → claude (${MODEL})`);
 
-  child = spawn('claude', [
-    '-p', BRAIN(topic),
-    '--output-format', 'stream-json',
-    '--include-partial-messages',
-    '--verbose',
-    '--model', MODEL,
-    '--disallowedTools', '*',
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const args = ['-p', BRAIN(topic, framePath),
+    '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
+    '--model', MODEL];
+  args.push(framePath ? '--allowedTools' : '--disallowedTools', framePath ? 'Read' : '*');
 
-  let buf = '';          // accumulated agent TEXT (the NDJSON it writes)
-  let processed = 0;     // how much of buf we've already parsed
-  let stdoutRest = '';   // partial stdout line
-  let sentDone = false;
-  let started = false;
+  child = spawn('claude', args, { stdio: ['ignore', 'pipe', 'pipe'] });
 
+  let buf = '', processed = 0, stdoutRest = '', sentDone = false, started = false;
   const takeNewLines = () => {
     const upto = buf.lastIndexOf('\n');
     if (upto <= processed) return;
-    const chunk = buf.slice(processed, upto);
-    processed = upto;
+    const chunk = buf.slice(processed, upto); processed = upto;
     for (let line of chunk.split('\n')) {
       line = line.trim();
       if (!line || line[0] !== '{') continue;
@@ -97,18 +109,15 @@ app.post('/ask', (req, res) => {
       cast(cmd);
     }
   };
-
   child.stdout.on('data', d => {
     stdoutRest += d.toString();
     const lines = stdoutRest.split('\n'); stdoutRest = lines.pop();
     for (const l of lines) {
       if (!l.trim()) continue;
       let ev; try { ev = JSON.parse(l); } catch (e) { continue; }
-      // streaming text deltas
       if (ev.type === 'stream_event' && ev.event?.type === 'content_block_delta' && ev.event.delta?.type === 'text_delta') {
         buf += ev.event.delta.text; takeNewLines();
       }
-      // complete assistant message (fallback / final authority)
       if (ev.type === 'assistant' && ev.message?.content) {
         const full = ev.message.content.filter(b => b.type === 'text').map(b => b.text).join('');
         if (full.length > buf.length) { buf = full; takeNewLines(); }
@@ -123,8 +132,36 @@ app.post('/ask', (req, res) => {
     console.log(`[done] claude exited ${code}`);
     child = null;
   });
+}
 
+const b64ToFile = (dataUrl, file) => {
+  const b = Buffer.from(String(dataUrl).replace(/^data:[^,]*,/, ''), 'base64');
+  fs.writeFileSync(file, b); return file;
+};
+
+// typed ask (fallback) — optional frame too
+app.post('/ask', (req, res) => {
+  const topic = String(req.body.topic || '').trim();
+  if (!topic) return res.status(400).json({ error: 'no topic' });
+  let framePath = null;
+  if (req.body.frame) framePath = b64ToFile(req.body.frame, path.join(TMP, `frame-${Date.now()}.jpg`));
+  runBrain(topic, framePath);
   res.json({ ok: true });
+});
+
+// spoken ask: audio (+ optional camera frame) → whisper → brain
+app.post('/ask-voice', async (req, res) => {
+  if (!req.body.audio) return res.status(400).json({ error: 'no audio' });
+  if (!whisperReady) return res.status(503).json({ error: 'whisper still loading — try again in a few seconds' });
+  const audioPath = b64ToFile(req.body.audio, path.join(TMP, `ask-${Date.now()}.webm`));
+  let framePath = null;
+  if (req.body.frame) framePath = b64ToFile(req.body.frame, path.join(TMP, `frame-${Date.now()}.jpg`));
+  cast({ op: '_status', state: 'transcribing' });
+  const r = await transcribe(audioPath);
+  if (r.error || !r.text) { cast({ op: '_status', state: 'done' }); return res.json({ ok: false, error: r.error || 'heard nothing' }); }
+  cast({ op: '_status', state: 'heard', text: r.text });
+  runBrain(r.text, framePath);
+  res.json({ ok: true, heard: r.text });
 });
 
 app.post('/stop', (_req, res) => {
