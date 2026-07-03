@@ -162,13 +162,13 @@
           <circle cx="242" cy="299" r="5.5" fill="#1c1c1c"/>
         </g>
       </g>
-      <g id="thinkbubble" transform="translate(196,150)">
+      <g id="thinkbubble" transform="translate(265,-145)">
         <circle cx="6" cy="66" r="7" fill="none" stroke="#1c1c1c" stroke-width="2.4"/>
         <circle cx="26" cy="42" r="10" fill="none" stroke="#1c1c1c" stroke-width="2.6"/>
         <ellipse cx="72" cy="8" rx="52" ry="30" fill="none" stroke="#1c1c1c" stroke-width="3"/>
         <g class="dots" fill="#1c1c1c"><circle cx="52" cy="8" r="4.5"/><circle cx="72" cy="8" r="4.5"/><circle cx="92" cy="8" r="4.5"/></g>
       </g>
-      <g id="hearing" transform="translate(230,270)" fill="none" stroke="#e8730c" stroke-width="3.4" stroke-linecap="round">
+      <g id="hearing" transform="translate(305,-15)" fill="none" stroke="#e8730c" stroke-width="3.4" stroke-linecap="round">
         <path d="M0,0 C10,10 10,26 0,36"/>
         <path d="M16,-8 C32,8 32,36 16,52"/>
       </g>
@@ -238,7 +238,7 @@ function drawingFlash(){
 function sparkle(){
   for(let i=0;i<8;i++){
     const a=Math.random()*Math.PI*2, r=90+Math.random()*70;
-    const x=219+Math.cos(a)*r, y=250+Math.sin(a)*r*0.7;
+    const x=240+Math.cos(a)*r, y=-30+Math.sin(a)*r*0.7;
     const s=document.createElementNS(SVG,'path');
     s.setAttribute('d','M0,-7 L2,-2 L7,0 L2,2 L0,7 L-2,2 L-7,0 L-2,-2 Z');
     s.setAttribute('transform',`translate(${x},${y})`);
