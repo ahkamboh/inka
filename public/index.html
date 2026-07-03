@@ -49,6 +49,9 @@
   #stagewrap.camon #drawing, #stagewrap.camon #mascot{
     filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,255,.9));}
   #stagewrap.camon #status{border-color:#fff}
+  #stagewrap.camon .washel{opacity:.12!important}
+  #stagewrap.camon .hiel{opacity:.3!important}
+  #stagewrap.camon .noteel{opacity:.55!important}
 
   .breathe{transform-box:fill-box;transform-origin:center bottom;animation:br 3s ease-in-out infinite}
   @keyframes br{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.035)}}
@@ -386,6 +389,7 @@ const H={
       const w=Math.min(760,(c.title||'').length*30), x1=960-w/2, x2=960+w/2;
       const hi=el('path',{d:`M ${x1-14} 148 Q 960 ${138+Math.random()*8} ${x2+14} 146`,
         fill:'none',stroke:'#ffd9ad','stroke-width':52,'stroke-linecap':'round',opacity:0});
+      hi.classList.add('hiel');
       sl.head.appendChild(hi); hi.style.transition='opacity .5s'; void hi.getBoundingClientRect(); hi.style.opacity=0.75;
       const t=handText({x:960,y:158,'text-anchor':'middle','font-size':76,fill:'#1c1c1c','font-weight':700,
         transform:`rotate(${(Math.random()*1.6-0.8).toFixed(2)} 960 150)`},c.title,true);
@@ -412,6 +416,7 @@ const H={
     const g=el('g',{transform:`rotate(${tilt} ${x+w/2} ${y+h/2})`});
     slideTarget().appendChild(g);
     const bg=el('rect',{x,y,width:w,height:h,rx:6,fill:'#ffd9ad',stroke:'#e8730c','stroke-width':3});
+    bg.classList.add('noteel');
     bg.style.opacity=0; g.appendChild(bg);
     bg.style.transition='opacity .4s'; void bg.getBoundingClientRect(); bg.style.opacity=0.92;
     const tape=el('rect',{x:x+w/2-45,y:y-12,width:90,height:24,rx:3,fill:'#e8730c',opacity:0,
@@ -439,6 +444,7 @@ const H={
   async wash(c){ // soft pastel blob grounding a composition — depth without noise
     const colors={orange:'#ffe3c4',cream:'#fff3dd',grey:'#eee9df'};
     const w=el('ellipse',{cx:c.x||960,cy:c.y||480,rx:c.rx||300,ry:c.ry||210,fill:colors[c.color]||colors.orange,opacity:0});
+    w.classList.add('washel');
     slideTarget().appendChild(w); w.style.transition='opacity .8s'; void w.getBoundingClientRect(); w.style.opacity=0.55;
     await sleep(500); },
   async step(c){ // numbered hand-drawn step chip: ① ② ③
@@ -458,6 +464,7 @@ const H={
     const {x=700,y=400,w=260}=c;
     const h=el('path',{d:`M ${x} ${y} Q ${x+w/2} ${y-6+Math.random()*12} ${x+w} ${y}`,
       fill:'none',stroke:'#ffd9ad','stroke-width':34,'stroke-linecap':'round',opacity:0});
+    h.classList.add('hiel');
     slideTarget().appendChild(h); h.style.transition='opacity .4s'; void h.getBoundingClientRect(); h.style.opacity=0.8;
     await sleep(300); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
