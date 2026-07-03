@@ -173,16 +173,55 @@ think/point/happy. 25-45 commands total. Finish with a happy pose + one-line tak
 then {"op":"done"}.`;
 
 let child = null;
+let showSlides = [];   // [{title, ops:[]}] — the current deck, for voice nav / re-explain
 
-function runBrain(topic, framePath) {
+// re-explain contract: narrate an EXISTING slide again, fresh words, no redrawing
+const REBRAIN = (utter, idx, slide) => `The user is looking at a hand-drawn slide that is ALREADY on screen. They asked (spoken): "${utter}"
+Slide ${idx + 1} — "${slide.title}". It was drawn with these commands (coordinates included):
+${slide.ops.map(o => JSON.stringify(o)).join('\n')}
+
+Re-explain THIS slide like a patient teacher giving a second, simpler pass — new words, a
+fresh angle or analogy, NOT the same sentences. OUTPUT ONLY NDJSON, one object per line:
+{"op":"say","text":"<=14 words"}                                  3-6 lines total
+{"op":"mascot","pose":"point"}                                     poses: point | think | happy
+{"op":"callout","x":800,"y":450,"tx":1150,"ty":300,"text":"<=4 words"}   optional, max 2 — point at parts of the EXISTING drawing (use its coordinates)
+{"op":"pause","ms":500}
+{"op":"done"}                                                      MUST be last
+Do NOT output slide/flow/compare/bars/title/icon ops — the drawing already exists.`;
+
+// spoken deck commands: nav ("slide two", "next") and re-explain ("explain slide 2 again")
+function parseCommand(text, cur) {
+  if (!showSlides.length) return { kind: 'ask' };
+  const t = String(text).toLowerCase();
+  const ord = { one: 1, first: 1, two: 2, second: 2, three: 3, third: 3, four: 4, fourth: 4, five: 5, fifth: 5, six: 6, sixth: 6 };
+  let n = null;
+  let m = t.match(/slide (?:number )?(\d+)/) || t.match(/(\d+)(?:st|nd|rd|th)? slide/);
+  if (m) n = +m[1];
+  if (n == null) for (const [k, v] of Object.entries(ord))
+    if (t.includes(k + ' slide') || t.includes('slide ' + k)) { n = v; break; }
+  if (n == null && /last slide/.test(t)) n = showSlides.length;
+  const reexp = /again|repeat|re-?explain|one more time|more detail|didn.?t (get|understand)|explain (that|this|it|the slide)/.test(t);
+  const short = t.replace(/[^a-z ]/g, '').trim().split(' ').length <= 5;
+  if (n != null && reexp) return { kind: 'reexplain', n: n - 1 };
+  if (n != null && short) return { kind: 'goto', n: n - 1 };
+  if (reexp) return { kind: 'reexplain', n: Math.max(0, Math.min(showSlides.length - 1, cur | 0)) };
+  if (short && /\b(next|forward)\b/.test(t)) return { kind: 'nav', delta: 1 };
+  if (short && /\b(previous|back|go back)\b/.test(t)) return { kind: 'nav', delta: -1 };
+  return { kind: 'ask' };
+}
+
+function runBrain(topic, framePath, re) {
   if (child) { try { child.kill('SIGTERM'); } catch (e) {} child = null; }
   fs.writeFileSync(LOG, '');
   cast({ op: '_status', state: 'thinking', topic });
-  console.log(`[ask] "${topic}"${framePath ? ' +frame' : ''} → claude (${MODEL})`);
+  if (!re) { showSlides = []; cast({ op: '_reset' }); }
+  const prompt = re ? REBRAIN(topic, re.n, showSlides[re.n]) : BRAIN(topic, framePath);
+  const model = re ? 'sonnet' : MODEL;   // re-explains are light — snappy model
+  console.log(`[${re ? 'again:slide ' + (re.n + 1) : 'ask'}] "${topic}"${framePath ? ' +frame' : ''} → claude (${model})`);
 
-  const args = ['-p', BRAIN(topic, framePath),
+  const args = ['-p', prompt,
     '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
-    '--model', MODEL];
+    '--model', model];
   args.push(framePath ? '--allowedTools' : '--disallowedTools', framePath ? 'Read' : '*');
 
   child = spawn('claude', args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -198,6 +237,9 @@ function runBrain(topic, framePath) {
       if (!line || line[0] !== '{') continue;
       let cmd; try { cmd = JSON.parse(line); } catch (e) { continue; }
       if (!cmd.op) continue;
+      if (cmd.op === 'slide') showSlides.push({ title: cmd.title || '', ops: [] });
+      else if (showSlides.length && ['say','icon','flow','compare','bars','callout','bignum','note','text','arrow','rect','circle','path'].includes(cmd.op))
+        showSlides[showSlides.length - 1].ops.push({ ...cmd });
       if (!started) { started = true; cast({ op: '_status', state: 'drawing' }); }
       if (cmd.op === 'done') sentDone = true;
       fs.appendFileSync(LOG, JSON.stringify(cmd) + '\n');
@@ -268,6 +310,21 @@ app.post('/ask-voice', async (req, res) => {
   const r = await transcribe(audioPath);
   if (r.error || !r.text) { cast({ op: '_status', state: 'done' }); return res.json({ ok: false, error: r.error || 'heard nothing' }); }
   cast({ op: '_status', state: 'heard', text: r.text });
+  const cur = +req.body.cur || 0;
+  const cmd = parseCommand(r.text, cur);
+  if (cmd.kind === 'nav' || cmd.kind === 'goto') {
+    const target = cmd.kind === 'nav'
+      ? Math.max(0, Math.min(showSlides.length - 1, cur + cmd.delta))
+      : Math.max(0, Math.min(showSlides.length - 1, cmd.n));
+    cast({ op: 'goto', slide: target });
+    cast({ op: '_listen' });
+    return res.json({ ok: true, heard: r.text, nav: target });
+  }
+  if (cmd.kind === 'reexplain' && showSlides[cmd.n]) {
+    cast({ op: 'goto', slide: cmd.n });
+    runBrain(r.text, null, { n: cmd.n });
+    return res.json({ ok: true, heard: r.text, again: cmd.n + 1 });
+  }
   runBrain(r.text, framePath);
   res.json({ ok: true, heard: r.text });
 });

@@ -180,7 +180,7 @@
   </svg>
 
   <div id="saywrap" class="hand"><span id="saytext"></span></div>
-  <div id="hint">inkling-live · talk to draw · wave to flip slides</div>
+  <div id="hint">inkling-live · talk to draw · wave or say “slide 2” to flip</div>
 </div>
 
 <script type="module" src="/mascot3d.js"></script>
@@ -507,11 +507,15 @@ const H={
   async done(){ await lineDone;
     centerSlide(liveSlide);
     pose('happy'); sparkle(); await sleep(700); say.classList.remove('on');
-    if(slides.length>1) setStatus('👋 wave your hand (or ←/→) to flip slides');
+    if(slides.length>1) setStatus('👋 wave to flip · or say "explain slide 2 again"');
     const i=Math.floor(Math.random()*4);
     const url=VOICES&&VOICES.next?VOICES.next[i]:null;
     await speakLine(["Done! What should I draw next?","What else should I explain?","Ask me another one!","Next topic — I'm listening!"][i],url);
     armListen(); },
+  async _reset(){ resetShow(); },
+  async goto(c){ const i=Math.max(0,Math.min(slides.length-1,+c.slide||0));
+    nav(i, i>cur?1:(i<cur?-1:0)); if(slides[i]) liveSlide=slides[i]; await sleep(600); },
+  async _listen(){ armListen(); },
   async _voices(c){ VOICES=c; },
   async _status(c){
     if(c.state==='transcribing'){ setStatus('👂 got it — transcribing…'); }
@@ -607,13 +611,13 @@ async function sendUtterance(blob){
   disarm(); setStatus('👂 got it…');
   const fr=new FileReader();
   const dataUrl=await new Promise(r=>{ fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
-  resetShow(); say.classList.remove('on');
+  say.classList.remove('on');
   await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({audio:dataUrl,frame:grabFrame()})});
+    body:JSON.stringify({audio:dataUrl,frame:grabFrame(),cur})});
 }
-window.__sendVoice=async(dataUrl)=>{ disarm(); resetShow();
+window.__sendVoice=async(dataUrl)=>{ disarm();
   await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({audio:dataUrl,frame:grabFrame()})}); };
+    body:JSON.stringify({audio:dataUrl,frame:grabFrame(),cur})}); };
 function vadLoop(){
   const buf=new Float32Array(analyser.fftSize);
   let capturing=false, speechMs=0, silenceMs=0, capMs=0, last=performance.now();
