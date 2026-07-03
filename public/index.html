@@ -147,7 +147,17 @@ function pose(p){
 let speaking=false, voice=null;
 function pickVoice(){
   const vs=speechSynthesis.getVoices();
-  voice = vs.find(v=>/samantha|google us english|zira|aria/i.test(v.name)) || vs.find(v=>v.lang && v.lang.startsWith('en')) || vs[0] || null;
+  if(!vs.length) return;
+  const enOf=v=>String(v.lang||'').replace('_','-').toLowerCase();
+  // known good FEMALE English voices, best first (mac / chrome / windows)
+  const FEMALE=['samantha','google us english','microsoft aria','microsoft zira','ava','allison','susan',
+                'serena','karen','moira','tessa','kate','victoria','fiona','google uk english female','martha'];
+  for(const name of FEMALE){
+    const hit=vs.find(v=>v.name.toLowerCase().includes(name));
+    if(hit){ voice=hit; break; }
+  }
+  if(!voice) voice=vs.find(v=>enOf(v).startsWith('en-us')) || vs.find(v=>enOf(v).startsWith('en')) || null;
+  if(voice) console.log('[tts] voice:',voice.name,voice.lang);
 }
 if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
 function speak(text){
@@ -155,7 +165,10 @@ function speak(text){
     if(!('speechSynthesis' in window)) return res();
     speaking=true; inner.classList.add('talking');
     const u=new SpeechSynthesisUtterance(text);
-    if(voice) u.voice=voice; u.pitch=1.3; u.rate=1.04;
+    if(!voice) pickVoice();                       /* voices can load late — retry at speak time */
+    if(voice) u.voice=voice;
+    u.lang='en-US';                               /* hard-force English even with no named voice */
+    u.pitch=1.25; u.rate=1.04;
     let done=false; const fin=()=>{ if(done)return; done=true; speaking=false; inner.classList.remove('talking'); res(); };
     u.onend=fin; u.onerror=fin;
     setTimeout(fin, Math.max(2500, text.length*90));      /* safety: never hang if TTS is silent */
