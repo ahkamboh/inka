@@ -6,7 +6,7 @@
   body{display:grid;place-items:center;font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
   #stagewrap{position:relative;width:min(96vw,calc(96vh*16/9));aspect-ratio:16/9;background:var(--paper);
     border-radius:14px;box-shadow:0 18px 70px rgba(30,25,15,.18);overflow:hidden}
-  svg{display:block;width:100%;height:100%}
+  svg{display:block;width:100%;height:100%;position:relative;z-index:2}
   .hand{font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
 
   /* ---- top bar (auto-hides while drawing so recordings stay clean) ---- */
@@ -30,11 +30,13 @@
     background:#fff;border:2px solid #e5e0d6;border-radius:10px;padding:6px 12px;opacity:0;transition:opacity .3s}
   #status.on{opacity:1}
 
-  /* ---- camera bubble (your face, in the recording, streamer-style) ---- */
-  #campod{position:absolute;right:22px;bottom:22px;width:184px;height:184px;border-radius:50%;overflow:hidden;
-    border:4px solid var(--ink);box-shadow:6px 8px 0 rgba(28,28,28,.14);z-index:4;background:#0c0c0c;display:none}
-  #campod.on{display:block}
-  #campod video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  /* ---- fullscreen camera: the camera IS the stage; ink draws over it (AR) ---- */
+  #camfull{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;z-index:1}
+  #stagewrap.camon{background:#101010}
+  #stagewrap.camon #camfull{display:block}
+  #stagewrap.camon #paper{opacity:0}
+  #stagewrap.camon #drawing, #stagewrap.camon #mascot{
+    filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,255,.9));}
 
   /* ---- mascot ---- */
   .breathe{transform-box:fill-box;transform-origin:center bottom;animation:br 3s ease-in-out infinite}
@@ -77,8 +79,9 @@
   </div>
   <div id="status" class="hand"></div>
 
+  <video id="camfull" autoplay playsinline muted></video>
   <svg id="stage" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
-    <rect width="1600" height="900" fill="#ffffff"/>
+    <rect id="paper" width="1600" height="900" fill="#ffffff"/>
     <g id="drawing"></g>
 
     <!-- mascot (inkling bean, lives on the left) -->
@@ -107,7 +110,6 @@
   </svg>
 
   <div id="saywrap" class="hand"><span id="saytext"></span></div>
-  <div id="campod"><video id="camvid" autoplay playsinline muted></video></div>
   <div id="hint">inkling-live · your agent is the artist</div>
 </div>
 
@@ -120,7 +122,7 @@ const bubble=document.getElementById('thinkbubble');
 const hearing=document.getElementById('hearing');
 const say=document.getElementById('saywrap'), sayText=document.getElementById('saytext');
 const bar=document.getElementById('bar'), hint=document.getElementById('hint'), status=document.getElementById('status');
-const campod=document.getElementById('campod'), camvid=document.getElementById('camvid');
+const stagewrap=document.getElementById('stagewrap'), camvid=document.getElementById('camfull');
 
 function setStatus(t){ if(!t){status.classList.remove('on');return;} status.textContent=t; status.classList.add('on'); }
 
@@ -193,17 +195,18 @@ const q=[]; let playing=false;
 async function pump(){ if(playing) return; playing=true;
   while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} } }
   playing=false; }
+window.__inject=(ops)=>{ops.forEach(o=>q.push(o));pump();}; // debug/test hook — same path as ws
 const ws=new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage=ev=>{ try{ q.push(JSON.parse(ev.data)); pump(); }catch(e){} };
 
 /* ---------- camera bubble + frame capture ---------- */
 let camStream=null;
 async function toggleCam(){
-  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; campod.classList.remove('on');
-    document.getElementById('cam').classList.remove('on'); return; }
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null;
+    stagewrap.classList.remove('camon'); document.getElementById('cam').classList.remove('on'); return; }
   try{
-    camStream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:640},audio:false});
-    camvid.srcObject=camStream; campod.classList.add('on'); document.getElementById('cam').classList.add('on');
+    camStream=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720},audio:false});
+    camvid.srcObject=camStream; stagewrap.classList.add('camon'); document.getElementById('cam').classList.add('on');
   }catch(e){ setStatus('camera blocked: '+e.name); setTimeout(()=>setStatus(''),2500); }
 }
 function grabFrame(){
