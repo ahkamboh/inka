@@ -1,16 +1,16 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>inkling-live</title>
 <style>
-  :root{ --ink:#1c1c1c; --accent:#e8730c; --muted:#7a7164; --paper:#ffffff; }
-  html,body{margin:0;height:100%;background:#efece6;overflow:hidden}
+  :root{ --ink:#1c1c1c; --accent:#e8730c; --muted:#7a7164; --paper:#fffdf8; }
+  html,body{margin:0;height:100%;background:#eae6dd;overflow:hidden}
   body{display:grid;place-items:center;font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
   #stagewrap{position:relative;width:min(96vw,calc(96vh*16/9));aspect-ratio:16/9;background:var(--paper);
-    border-radius:14px;box-shadow:0 18px 70px rgba(30,25,15,.18);overflow:hidden}
+    border-radius:14px;box-shadow:0 18px 70px rgba(30,25,15,.2);overflow:hidden}
   svg{display:block;width:100%;height:100%;position:relative;z-index:2}
   .hand{font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
   .hidden{opacity:0;pointer-events:none}
 
-  /* ---- start splash (one tap unlocks mic + voice, then everything is hands-free) ---- */
+  /* ---- start splash ---- */
   #splash{position:absolute;inset:0;z-index:9;background:var(--paper);display:grid;place-items:center;cursor:pointer;
     transition:opacity .6s}
   #splash.gone{opacity:0;pointer-events:none}
@@ -27,18 +27,18 @@
   #status.on{opacity:1}
   #status.live{color:#e23b3b;border-color:#e23b3b}
 
-  /* ---- small corner controls (camera toggle only — everything else is voice) ---- */
+  /* ---- corner controls ---- */
   #corner{position:absolute;right:16px;top:14px;z-index:5;display:flex;gap:8px;transition:opacity .4s}
   .btn{padding:9px 13px;font-size:15px;border:2.5px solid var(--ink);border-radius:11px;background:#fff;
     color:var(--ink);cursor:pointer;font-family:inherit;user-select:none}
   #cam.on{background:var(--accent);border-color:var(--accent);color:#fff}
   #hint{position:absolute;bottom:14px;right:20px;font-size:13px;color:#b9b2a6;z-index:5;transition:opacity .5s}
 
-  /* ---- fullscreen camera: the camera IS the stage; ink draws over it (AR) ---- */
+  /* ---- fullscreen camera AR mode ---- */
   #camfull{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;z-index:1}
   #stagewrap.camon{background:#101010}
   #stagewrap.camon #camfull{display:block}
-  #stagewrap.camon #paper{opacity:0}
+  #stagewrap.camon #paper,#stagewrap.camon #grain{opacity:0}
   #stagewrap.camon #drawing, #stagewrap.camon #mascot{
     filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,255,.9));}
   #stagewrap.camon #status{border-color:#fff}
@@ -46,12 +46,15 @@
   /* ---- mascot ---- */
   .breathe{transform-box:fill-box;transform-origin:center bottom;animation:br 3s ease-in-out infinite}
   @keyframes br{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.035)}}
-  .eyes{transform-box:fill-box;transform-origin:center;animation:blink 3.6s infinite}
+  .eyes{transform-box:fill-box;transform-origin:center;animation:blink 3.6s infinite;transition:transform .35s}
   @keyframes blink{0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.08)}97%{transform:scaleY(1)}}
+  .drawing .eyes{transform:translateX(5px)}                 /* glances at its canvas */
   .hop{animation:hop .55s ease-in-out 2}
   @keyframes hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-26px)}}
   .sway{transform-box:fill-box;transform-origin:center bottom;animation:sway 1.6s ease-in-out infinite}
   @keyframes sway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+  .drawing #mascotInner{animation:lean 2.4s ease-in-out infinite}
+  @keyframes lean{0%,100%{transform:rotate(2.6deg)}50%{transform:rotate(4.2deg)}}
   #mouth{transform-box:fill-box;transform-origin:center}
   .talking #mouth{animation:mouthmove .26s ease-in-out infinite}
   @keyframes mouthmove{0%,100%{transform:scaleY(1)}50%{transform:scaleY(2.3) translateY(1.5px)}}
@@ -61,13 +64,24 @@
   #thinkbubble .dots circle:nth-child(2){animation-delay:.2s}
   #thinkbubble .dots circle:nth-child(3){animation-delay:.4s}
   @keyframes tdot{0%,100%{opacity:.25}50%{opacity:1}}
-  #armPoint{opacity:0;transition:opacity .3s}
+  #armPoint,#armPencil{opacity:0;transition:opacity .3s}
   .pointing #armPoint{opacity:1}
-  .pointing #armRest{opacity:0}
+  .pointing #armRest,.drawing #armRest,.waving #armRest{opacity:0}
+  .drawing #armPencil{opacity:1}
+  #armPencil{transform-box:fill-box;transform-origin:left center}
+  .drawing #armPencil{animation:scribble .5s ease-in-out infinite}
+  @keyframes scribble{0%,100%{transform:rotate(0deg)}50%{transform:rotate(6deg)}}
+  #armWave{opacity:0;transform-box:fill-box;transform-origin:180px 300px}
+  .waving #armWave{opacity:1;animation:wavearm .6s ease-in-out 3}
+  @keyframes wavearm{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-24deg)}}
   #hearing{opacity:0;transition:opacity .3s}
   #hearing.on{opacity:1}
   #hearing path{animation:tdot 1s infinite}
   #hearing path:nth-child(2){animation-delay:.25s}
+  #shadow{transform-box:fill-box;transform-origin:center;animation:shbr 3s ease-in-out infinite}
+  @keyframes shbr{0%,100%{transform:scaleX(1)}50%{transform:scaleX(1.05)}}
+  .spark{transform-box:fill-box;transform-origin:center;animation:spark .9s ease-out forwards}
+  @keyframes spark{0%{transform:scale(0) rotate(0deg);opacity:1}70%{opacity:1}100%{transform:scale(1.4) rotate(40deg);opacity:0}}
 
   /* ---- speech caption ---- */
   #saywrap{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);max-width:64%;z-index:4;
@@ -90,20 +104,42 @@
 
   <video id="camfull" autoplay playsinline muted></video>
   <svg id="stage" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
-    <rect id="paper" width="1600" height="900" fill="#ffffff"/>
+    <defs>
+      <pattern id="grainDots" width="26" height="26" patternUnits="userSpaceOnUse">
+        <circle cx="4" cy="6" r="1" fill="#1c1c1c" opacity="0.045"/>
+        <circle cx="17" cy="19" r="1" fill="#1c1c1c" opacity="0.035"/>
+      </pattern>
+    </defs>
+    <rect id="paper" width="1600" height="900" fill="#fffdf8"/>
+    <rect id="grain" width="1600" height="900" fill="url(#grainDots)"/>
     <g id="drawing"></g>
 
-    <!-- mascot (inkling bean, lives on the left) -->
+    <!-- mascot (inkling bean) -->
     <g id="mascot" transform="translate(60,470)">
+      <ellipse id="shadow" cx="219" cy="395" rx="64" ry="10" fill="#1c1c1c" opacity="0.13"/>
       <g id="mascotInner" class="breathe">
         <path d="M140,202 C113,202 106,244 109,272 C110,288 124,296 140,296 C156,296 170,288 171,272 C174,244 167,202 140,202 Z"
               fill="#1c1c1c" transform="scale(1.25)"/>
         <g class="eyes"><circle cx="163" cy="298" r="6.5" fill="#fff"/><circle cx="186" cy="298" r="6.5" fill="#fff"/></g>
+        <circle cx="152" cy="313" r="5" fill="#e8730c" opacity="0.35"/>
+        <circle cx="197" cy="313" r="5" fill="#e8730c" opacity="0.35"/>
         <path id="mouth" d="M164,317 Q175,325 187,317" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
         <path d="M166,368 L164,388 M184,368 L186,388 M156,388 L172,388 M178,388 L194,388"
               fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
         <path id="armRest" d="M143,300 C132,314 132,330 140,342" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
         <path id="armPoint" d="M205,305 C228,296 248,290 268,287" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+        <g id="armWave">
+          <path d="M200,305 C218,290 226,272 228,252" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+          <path d="M222,258 L228,252 L234,258 M224,247 L228,252 L233,248" fill="none" stroke="#1c1c1c" stroke-width="2.6" stroke-linecap="round"/>
+        </g>
+        <g id="armPencil">
+          <path d="M203,308 C222,306 238,310 250,318" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+          <g transform="translate(246,306) rotate(38)">
+            <rect x="0" y="0" width="34" height="9" rx="2" fill="#e8730c"/>
+            <path d="M34,0 L42,4.5 L34,9 Z" fill="#1c1c1c"/>
+            <rect x="-5" y="0" width="5" height="9" rx="2" fill="#7a7164"/>
+          </g>
+        </g>
       </g>
       <g id="thinkbubble" transform="translate(196,150)">
         <circle cx="6" cy="66" r="7" fill="none" stroke="#1c1c1c" stroke-width="2.4"/>
@@ -115,6 +151,7 @@
         <path d="M0,0 C10,10 10,26 0,36"/>
         <path d="M16,-8 C32,8 32,36 16,52"/>
       </g>
+      <g id="sparks"></g>
     </g>
   </svg>
 
@@ -129,6 +166,7 @@ const mascot=document.getElementById('mascot');
 const inner=document.getElementById('mascotInner');
 const bubble=document.getElementById('thinkbubble');
 const hearing=document.getElementById('hearing');
+const sparks=document.getElementById('sparks');
 const say=document.getElementById('saywrap'), sayText=document.getElementById('saytext');
 const status=document.getElementById('status'), splash=document.getElementById('splash');
 const stagewrap=document.getElementById('stagewrap'), camvid=document.getElementById('camfull');
@@ -136,50 +174,89 @@ const stagewrap=document.getElementById('stagewrap'), camvid=document.getElement
 function setStatus(t,live){ if(!t){status.classList.remove('on','live');return;}
   status.textContent=t; status.classList.add('on'); status.classList.toggle('live',!!live); }
 
-/* ---------- mascot poses + voice ---------- */
+/* ---------- mascot poses ---------- */
 function pose(p){
-  mascot.classList.remove('pointing'); bubble.classList.remove('on');
+  mascot.classList.remove('pointing','drawing','waving'); bubble.classList.remove('on');
   inner.classList.remove('sway','hop');
   if(p==='think'){ bubble.classList.add('on'); inner.classList.add('sway'); }
   if(p==='point'){ mascot.classList.add('pointing'); }
+  if(p==='draw'){ mascot.classList.add('drawing'); }
+  if(p==='wave'){ mascot.classList.add('waving'); }
   if(p==='happy'){ void inner.offsetWidth; inner.classList.add('hop'); }
 }
-let speaking=false, voice=null;
+let drawTimer=null;
+function drawingFlash(){        /* auto: pencil-in-hand while shapes appear */
+  if(!mascot.classList.contains('pointing')) mascot.classList.add('drawing');
+  clearTimeout(drawTimer);
+  drawTimer=setTimeout(()=>mascot.classList.remove('drawing'),900);
+}
+function sparkle(){
+  for(let i=0;i<8;i++){
+    const a=Math.random()*Math.PI*2, r=90+Math.random()*70;
+    const x=219+Math.cos(a)*r, y=250+Math.sin(a)*r*0.7;
+    const s=document.createElementNS(SVG,'path');
+    s.setAttribute('d','M0,-7 L2,-2 L7,0 L2,2 L0,7 L-2,2 L-7,0 L-2,-2 Z');
+    s.setAttribute('transform',`translate(${x},${y})`);
+    s.setAttribute('fill',Math.random()<0.5?'#e8730c':'#1c1c1c');
+    s.classList.add('spark'); s.style.animationDelay=(Math.random()*0.3)+'s';
+    sparks.appendChild(s); setTimeout(()=>s.remove(),1400);
+  }
+}
+
+/* ---------- voice: kokoro wavs from the server, browser TTS as fallback ---------- */
+let speaking=false, voice=null, VOICES=null;   /* VOICES = pre-generated fixed lines */
 function pickVoice(){
-  const vs=speechSynthesis.getVoices();
-  if(!vs.length) return;
+  const vs=speechSynthesis.getVoices(); if(!vs.length) return;
   const enOf=v=>String(v.lang||'').replace('_','-').toLowerCase();
-  // known good FEMALE English voices, best first (mac / chrome / windows)
   const FEMALE=['samantha','google us english','microsoft aria','microsoft zira','ava','allison','susan',
                 'serena','karen','moira','tessa','kate','victoria','fiona','google uk english female','martha'];
-  for(const name of FEMALE){
-    const hit=vs.find(v=>v.name.toLowerCase().includes(name));
-    if(hit){ voice=hit; break; }
-  }
+  for(const name of FEMALE){ const hit=vs.find(v=>v.name.toLowerCase().includes(name)); if(hit){ voice=hit; break; } }
   if(!voice) voice=vs.find(v=>enOf(v).startsWith('en-us')) || vs.find(v=>enOf(v).startsWith('en')) || null;
-  if(voice) console.log('[tts] voice:',voice.name,voice.lang);
 }
 if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
-function speak(text){
+function speakBrowser(text){
   return new Promise(res=>{
     if(!('speechSynthesis' in window)) return res();
-    speaking=true; inner.classList.add('talking');
     const u=new SpeechSynthesisUtterance(text);
-    if(!voice) pickVoice();                       /* voices can load late — retry at speak time */
-    if(voice) u.voice=voice;
-    u.lang='en-US';                               /* hard-force English even with no named voice */
-    u.pitch=1.25; u.rate=1.04;
-    let done=false; const fin=()=>{ if(done)return; done=true; speaking=false; inner.classList.remove('talking'); res(); };
+    if(!voice) pickVoice(); if(voice) u.voice=voice;
+    u.lang='en-US'; u.pitch=1.25; u.rate=1.04;
+    let done=false; const fin=()=>{ if(done)return; done=true; res(); };
     u.onend=fin; u.onerror=fin;
-    setTimeout(fin, Math.max(2500, text.length*90));      /* safety: never hang if TTS is silent */
+    setTimeout(fin, Math.max(2500, text.length*90));
     speechSynthesis.speak(u);
   });
+}
+function playWav(url){
+  return new Promise(res=>{
+    const a=new Audio(url);
+    let done=false; const fin=()=>{ if(done)return; done=true; res(); };
+    a.onended=fin; a.onerror=fin;
+    a.play().catch(fin);
+    setTimeout(fin,30000);
+  });
+}
+async function speakLine(text,audioUrl){   /* mouth on, mic muted to itself, natural voice */
+  speaking=true; inner.classList.add('talking');
+  if(audioUrl) await playWav(audioUrl); else await speakBrowser(text);
+  speaking=false; inner.classList.remove('talking');
+}
+/* the SPEECH TRACK runs in parallel with drawing; lines stay in order on their own chain */
+let speechQ=Promise.resolve();
+function enqueueSpeech(text,audioUrl){
+  speechQ=speechQ.then(async()=>{
+    say.classList.remove('you'); sayText.textContent=''; say.classList.add('on');
+    const audio=speakLine(text,audioUrl);
+    for(const ch of String(text||'')){ sayText.textContent+=ch; await sleep(22); }
+    await audio;
+  });
+  return speechQ;
 }
 
 /* ---------- draw-on helpers ---------- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function el(tag,attrs){const e=document.createElementNS(SVG,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
 async function drawOn(shape,dur){
+  drawingFlash();
   stage.appendChild(shape);
   let len=1200; try{len=shape.getTotalLength();}catch(e){}
   const d=dur||Math.min(2200,Math.max(500,len*1.15));
@@ -190,6 +267,7 @@ async function drawOn(shape,dur){
   await sleep(d+60);
 }
 async function writeOn(t,dur){
+  drawingFlash();
   stage.appendChild(t);
   const d=dur||Math.max(420,(t.textContent||'').length*46);
   t.style.clipPath='inset(-20% 100% -20% 0)'; t.style.transition=`clip-path ${d}ms steps(${Math.max(4,(t.textContent||'').length)})`;
@@ -200,18 +278,20 @@ async function writeOn(t,dur){
 
 /* ---------- op handlers ---------- */
 const H={
-  async say(c){ say.classList.remove('you'); sayText.textContent=''; say.classList.add('on');
-    const tts=speak(String(c.text||''));                    /* mascot SPEAKS the line... */
-    for(const ch of String(c.text||'')){ sayText.textContent+=ch; await sleep(24);}  /* ...while it types on */
-    await tts; await sleep(220); },
+  async say(c){ enqueueSpeech(String(c.text||''), c.audio||null); await sleep(250); }, /* NON-blocking: she talks while the next ops draw */
   async mascot(c){ pose(c.pose||'idle'); await sleep(300); },
   async title(c){ const t=el('text',{x:960,y:150,'text-anchor':'middle','font-size':56,fill:'#1c1c1c',
       transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`});
-    t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||''; await writeOn(t); },
+    t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||'';
+    await writeOn(t);
+    const w=Math.min(680,(c.text||'').length*26), x1=960-w/2, x2=960+w/2;   /* squiggle underline */
+    await drawOn(el('path',{d:`M ${x1} 172 C ${x1+w*0.25} 165 ${x1+w*0.4} 180 ${960} 172 C ${x2-w*0.3} 165 ${x2-w*0.15} 179 ${x2} 171`,
+      fill:'none',stroke:'#e8730c','stroke-width':4,'stroke-linecap':'round'}),600); },
   async path(c){ await drawOn(el('path',{d:c.d,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c',
       'stroke-width':c.width||4,'stroke-linecap':'round','stroke-linejoin':'round'}),c.dur); },
   async circle(c){ await drawOn(el('circle',{cx:c.cx,cy:c.cy,r:c.r,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4}),c.dur); },
-  async rect(c){ await drawOn(el('rect',{x:c.x,y:c.y,width:c.w,height:c.h,rx:c.rx??12,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4}),c.dur); },
+  async rect(c){ await drawOn(el('rect',{x:c.x,y:c.y,width:c.w,height:c.h,rx:c.rx??12,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4,
+      transform:`rotate(${(Math.random()*1.6-0.8).toFixed(2)} ${(+c.x)+(+c.w)/2} ${(+c.y)+(+c.h)/2})`}),c.dur); },
   async arrow(c){ const {x1,y1,x2,y2}=c, mx=(+x1+ +x2)/2+((+y2-+y1)*0.06), my=(+y1+ +y2)/2-((+x2-+x1)*0.06);
     await drawOn(el('path',{d:`M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`,fill:'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4,'stroke-linecap':'round'}),c.dur);
     const a=Math.atan2(y2-my,x2-mx), L=16;
@@ -221,11 +301,16 @@ const H={
       transform:`rotate(${(Math.random()*3-1.5).toFixed(2)} ${c.x} ${c.y})`});
     t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||''; await writeOn(t); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
-  async clear(){ stage.style.transition='opacity .5s'; stage.style.opacity=0; await sleep(520);
+  async clear(){ await speechQ;                                     /* let her finish the beat's line */
+    stage.style.transition='opacity .5s'; stage.style.opacity=0; await sleep(520);
     stage.innerHTML=''; stage.style.transition='none'; stage.style.opacity=1; },
-  async done(){ pose('happy'); await sleep(600); say.classList.remove('on');
-    await speak(NEXT_LINES[Math.floor(Math.random()*NEXT_LINES.length)]);
+  async done(){ await speechQ;                                      /* finish speaking first */
+    pose('happy'); sparkle(); await sleep(700); say.classList.remove('on');
+    const i=Math.floor(Math.random()*4);
+    const url=VOICES&&VOICES.next?VOICES.next[i]:null;
+    await speakLine(["Done! What should I draw next?","What else should I explain?","Ask me another one!","Next topic — I'm listening!"][i],url);
     armListen(); },
+  async _voices(c){ VOICES=c; },
   async _status(c){
     if(c.state==='transcribing'){ setStatus('👂 got it — transcribing…'); }
     if(c.state==='heard'){ say.classList.add('you','on'); sayText.textContent='🎤 “'+c.text+'”'; setStatus(''); }
@@ -234,7 +319,6 @@ const H={
   },
 };
 const GREETING="Hey! I'm inkling. Ask me anything — just talk, and I'll draw it for you!";
-const NEXT_LINES=["Done! What should I draw next?","What else should I explain?","Ask me another one!","Next topic — I'm listening!"];
 
 /* ---------- queue player ---------- */
 const q=[]; let playing=false;
@@ -263,12 +347,12 @@ function grabFrame(){
   return c.toDataURL('image/jpeg',0.85);
 }
 
-/* ---------- hands-free voice loop: VAD listens, you just talk ---------- */
+/* ---------- hands-free voice loop (VAD) ---------- */
 let micStream=null, analyser=null, vadArmed=false, rec=null, chunks=[];
 function armListen(){ vadArmed=true; pose('idle'); setStatus('🎙 just talk — I\'m listening'); }
 function disarm(){ vadArmed=false; hearing.classList.remove('on'); }
 async function sendUtterance(blob){
-  if(blob.size<4500){ armListen(); return; }   /* too short — noise; keep listening */
+  if(blob.size<4500){ armListen(); return; }
   disarm(); setStatus('👂 got it…');
   const fr=new FileReader();
   const dataUrl=await new Promise(r=>{ fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
@@ -276,7 +360,7 @@ async function sendUtterance(blob){
   await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({audio:dataUrl,frame:grabFrame()})});
 }
-window.__sendVoice=async(dataUrl)=>{ disarm(); stage.innerHTML='';   /* test hook (same path) */
+window.__sendVoice=async(dataUrl)=>{ disarm(); stage.innerHTML='';
   await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({audio:dataUrl,frame:grabFrame()})}); };
 function vadLoop(){
@@ -290,7 +374,7 @@ function vadLoop(){
     let s=0; for(let i=0;i<buf.length;i++) s+=buf[i]*buf[i];
     const rms=Math.sqrt(s/buf.length);
     if(rms>0.013){ speechMs+=dt; silenceMs=0; } else { silenceMs+=dt; if(!capturing) speechMs=0; }
-    if(!capturing && speechMs>260){                                   /* speech started → record */
+    if(!capturing && speechMs>260){
       capturing=true; capMs=0; chunks=[];
       rec=new MediaRecorder(micStream,{mimeType:'audio/webm'});
       rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
@@ -304,7 +388,7 @@ function vadLoop(){
   },80);
 }
 
-/* ---------- one tap → the whole show is hands-free ---------- */
+/* ---------- one tap → hands-free forever ---------- */
 splash.addEventListener('click', async ()=>{
   splash.classList.add('gone');
   try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
@@ -313,7 +397,8 @@ splash.addEventListener('click', async ()=>{
   const src=ctx.createMediaStreamSource(micStream);
   analyser=ctx.createAnalyser(); analyser.fftSize=2048; src.connect(analyser);
   vadLoop();
-  pose('happy'); await speak(GREETING);
+  pose('wave');
+  await speakLine(GREETING, VOICES&&VOICES.greeting?VOICES.greeting:null);
   armListen();
 });
 </script>

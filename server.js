@@ -46,6 +46,60 @@ function bootWhisper() {
 bootWhisper();
 const transcribe = audioPath => new Promise(resolve => { whisperQueue.push(resolve); whisper.stdin.write(audioPath + '\n'); });
 
+// ---- persistent Kokoro TTS worker (natural female voice; loads once) ----
+const AUDIO_DIR = path.join(TMP, 'audio');
+fs.mkdirSync(AUDIO_DIR, { recursive: true });
+app.use('/audio', express.static(AUDIO_DIR));
+let tts = null, ttsReady = false, ttsCbs = new Map(), ttsSeq = 0;
+function bootTTS() {
+  if (!fs.existsSync(path.join(__dirname, 'models', 'kokoro-v1.0.onnx'))) {
+    console.log('[tts] kokoro model not found — captions will use browser voice');
+    return;
+  }
+  tts = spawn('python3', [path.join(__dirname, 'tts_worker.py')], { stdio: ['pipe', 'pipe', 'pipe'] });
+  let rest = '';
+  tts.stdout.on('data', d => {
+    rest += d.toString();
+    const lines = rest.split('\n'); rest = lines.pop();
+    for (const l of lines) {
+      if (!l.trim()) continue;
+      let m; try { m = JSON.parse(l); } catch (e) { continue; }
+      if (m.ready) { ttsReady = true; console.log(`[tts] kokoro ready (voice: ${m.voice})`); pregenLines(); continue; }
+      const cb = ttsCbs.get(m.id); if (cb) { ttsCbs.delete(m.id); cb(m); }
+    }
+  });
+  tts.stderr.on('data', () => {});
+  tts.on('close', () => { ttsReady = false; console.log('[tts] worker died — restarting'); setTimeout(bootTTS, 1500); });
+}
+bootTTS();
+function ttsGen(text) { // -> Promise<audio url | null>
+  if (!ttsReady) return Promise.resolve(null);
+  const id = ++ttsSeq, file = `say-${id}.wav`;
+  return new Promise(resolve => {
+    const to = setTimeout(() => { ttsCbs.delete(id); resolve(null); }, 6000); // never stall the show
+    ttsCbs.set(id, m => { clearTimeout(to); resolve(m.ok ? '/audio/' + file : null); });
+    tts.stdin.write(JSON.stringify({ id, text, path: path.join(AUDIO_DIR, file) }) + '\n');
+  });
+}
+// fixed lines (greeting / next prompts) — pre-generate once so they play instantly
+const FIXED = {
+  greeting: "Hey! I'm inkling. Ask me anything — just talk, and I'll draw it for you!",
+  next1: 'Done! What should I draw next?', next2: 'What else should I explain?',
+  next3: 'Ask me another one!', next4: "Next topic — I'm listening!",
+};
+async function pregenLines() {
+  for (const [k, text] of Object.entries(FIXED)) {
+    const id = ++ttsSeq, file = `fixed-${k}.wav`;
+    await new Promise(resolve => {
+      ttsCbs.set(id, () => resolve());
+      tts.stdin.write(JSON.stringify({ id, text, path: path.join(AUDIO_DIR, file) }) + '\n');
+    });
+  }
+  console.log('[tts] fixed lines pre-generated');
+  cast({ op: '_voices', greeting: '/audio/fixed-greeting.wav',
+    next: ['/audio/fixed-next1.wav', '/audio/fixed-next2.wav', '/audio/fixed-next3.wav', '/audio/fixed-next4.wav'] });
+}
+
 // ---- the drawing brain's contract ----
 const BRAIN = (topic, framePath) => `You are the live drawing brain of a hand-drawn explainer mascot, performing on screen while the user records.
 ${framePath ? `THE USER'S CAMERA IS ON. FIRST use the Read tool to open ${framePath} — it is the live camera/screen frame from this exact moment. Look at it. Your FIRST "say" line must react naturally to something you actually SEE (the person, their gesture, the object or screen they're showing). Weave what you see into the explainer where it helps.` : ''}
@@ -94,6 +148,7 @@ function runBrain(topic, framePath) {
   child = spawn('claude', args, { stdio: ['ignore', 'pipe', 'pipe'] });
 
   let buf = '', processed = 0, stdoutRest = '', sentDone = false, started = false;
+  let sayChain = Promise.resolve();
   const takeNewLines = () => {
     const upto = buf.lastIndexOf('\n');
     if (upto <= processed) return;
@@ -106,7 +161,15 @@ function runBrain(topic, framePath) {
       if (!started) { started = true; cast({ op: '_status', state: 'drawing' }); }
       if (cmd.op === 'done') sentDone = true;
       fs.appendFileSync(LOG, JSON.stringify(cmd) + '\n');
-      cast(cmd);
+      if (cmd.op === 'say' && ttsReady) {
+        // sequence-preserving async: hold the op until its audio exists (usually <1s,
+        // while earlier ops are still drawing), then broadcast with the audio url.
+        sayChain = sayChain.then(async () => { cmd.audio = await ttsGen(String(cmd.text || '')); cast(cmd); });
+      } else if (cmd.op === 'done') {
+        sayChain = sayChain.then(() => cast(cmd));      // done must come after the last say
+      } else {
+        cast(cmd);
+      }
     }
   };
   child.stdout.on('data', d => {
@@ -127,7 +190,15 @@ function runBrain(topic, framePath) {
   child.stderr.on('data', d => { const s = d.toString().trim(); if (s) console.error('[claude]', s.slice(0, 200)); });
   child.on('close', (code) => {
     buf += '\n'; takeNewLines();
-    if (!sentDone) cast({ op: 'done' });
+    if (!started) {
+      // model answered in prose (or nothing) — never dead-end the show
+      console.log('[warn] run produced no draw ops; raw head:', buf.slice(0, 200));
+      sayChain = sayChain.then(async () => {
+        const cmd = { op: 'say', text: "Hmm, that one stumped me — ask me something else!" };
+        cmd.audio = await ttsGen(cmd.text); cast(cmd);
+      });
+    }
+    sayChain.then(() => { if (!sentDone) cast({ op: 'done' }); });
     cast({ op: '_status', state: 'done' });
     console.log(`[done] claude exited ${code}`);
     child = null;
