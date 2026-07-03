@@ -10,7 +10,7 @@ const fs = require('fs');
 const os = require('os');
 
 const PORT = process.env.PORT || 4141;
-const MODEL = process.env.LIVE_MODEL || 'sonnet'; // fast first stroke; override with LIVE_MODEL
+const MODEL = process.env.LIVE_MODEL || 'opus'; // smarter explainers; override with LIVE_MODEL (sonnet = faster first stroke)
 const LOG = path.join(__dirname, 'last-run.ndjson');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'inkling-live-'));
 
