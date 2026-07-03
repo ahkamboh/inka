@@ -8,27 +8,31 @@
     border-radius:14px;box-shadow:0 18px 70px rgba(30,25,15,.18);overflow:hidden}
   svg{display:block;width:100%;height:100%;position:relative;z-index:2}
   .hand{font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
-
-  /* ---- top bar (auto-hides while drawing so recordings stay clean) ---- */
-  #bar{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:5;
-    align-items:center;transition:opacity .5s, transform .5s}
-  #bar.hidden{opacity:0;transform:translateX(-50%) translateY(-64px);pointer-events:none}
-  #topic{width:min(430px,46vw);padding:12px 18px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;
-    background:#fff;outline:none;font-family:inherit;color:var(--ink)}
-  .btn{padding:12px 18px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;background:#fff;
-    color:var(--ink);cursor:pointer;font-family:inherit;user-select:none}
-  .btn.dark{background:var(--ink);color:#fff}
-  .btn.dark:hover{background:#000}
-  #mic.listening{background:#e23b3b;border-color:#e23b3b;color:#fff;animation:pulse 1s infinite}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,59,59,.5)}50%{box-shadow:0 0 0 12px rgba(226,59,59,0)}}
-  #cam.on{background:var(--accent);border-color:var(--accent);color:#fff}
-  #hint{position:absolute;bottom:14px;right:224px;font-size:13px;color:#b9b2a6;z-index:5;transition:opacity .5s}
   .hidden{opacity:0;pointer-events:none}
 
-  /* ---- status chip (near mascot, visible even while bar is hidden) ---- */
-  #status{position:absolute;left:26px;top:22px;z-index:4;font-size:15px;color:var(--muted);
-    background:#fff;border:2px solid #e5e0d6;border-radius:10px;padding:6px 12px;opacity:0;transition:opacity .3s}
+  /* ---- start splash (one tap unlocks mic + voice, then everything is hands-free) ---- */
+  #splash{position:absolute;inset:0;z-index:9;background:var(--paper);display:grid;place-items:center;cursor:pointer;
+    transition:opacity .6s}
+  #splash.gone{opacity:0;pointer-events:none}
+  #splash .inner{text-align:center;color:var(--ink)}
+  #splash h1{font-size:44px;margin:0 0 10px;font-weight:600}
+  #splash p{font-size:20px;color:var(--muted);margin:6px 0}
+  #tapdot{width:92px;height:92px;border-radius:50%;border:4px solid var(--ink);display:grid;place-items:center;
+    margin:26px auto 0;font-size:34px;animation:tap 1.6s ease-in-out infinite}
+  @keyframes tap{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(232,115,12,.35)}50%{transform:scale(1.07);box-shadow:0 0 0 22px rgba(232,115,12,0)}}
+
+  /* ---- status chip ---- */
+  #status{position:absolute;left:26px;top:22px;z-index:4;font-size:16px;color:var(--muted);
+    background:#fff;border:2px solid #e5e0d6;border-radius:10px;padding:7px 14px;opacity:0;transition:opacity .3s}
   #status.on{opacity:1}
+  #status.live{color:#e23b3b;border-color:#e23b3b}
+
+  /* ---- small corner controls (camera toggle only — everything else is voice) ---- */
+  #corner{position:absolute;right:16px;top:14px;z-index:5;display:flex;gap:8px;transition:opacity .4s}
+  .btn{padding:9px 13px;font-size:15px;border:2.5px solid var(--ink);border-radius:11px;background:#fff;
+    color:var(--ink);cursor:pointer;font-family:inherit;user-select:none}
+  #cam.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  #hint{position:absolute;bottom:14px;right:20px;font-size:13px;color:#b9b2a6;z-index:5;transition:opacity .5s}
 
   /* ---- fullscreen camera: the camera IS the stage; ink draws over it (AR) ---- */
   #camfull{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;z-index:1}
@@ -37,6 +41,7 @@
   #stagewrap.camon #paper{opacity:0}
   #stagewrap.camon #drawing, #stagewrap.camon #mascot{
     filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,255,.9));}
+  #stagewrap.camon #status{border-color:#fff}
 
   /* ---- mascot ---- */
   .breathe{transform-box:fill-box;transform-origin:center bottom;animation:br 3s ease-in-out infinite}
@@ -47,6 +52,9 @@
   @keyframes hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-26px)}}
   .sway{transform-box:fill-box;transform-origin:center bottom;animation:sway 1.6s ease-in-out infinite}
   @keyframes sway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+  #mouth{transform-box:fill-box;transform-origin:center}
+  .talking #mouth{animation:mouthmove .26s ease-in-out infinite}
+  @keyframes mouthmove{0%,100%{transform:scaleY(1)}50%{transform:scaleY(2.3) translateY(1.5px)}}
   #thinkbubble{opacity:0;transition:opacity .4s}
   #thinkbubble.on{opacity:1}
   #thinkbubble .dots circle{animation:tdot 1.2s infinite}
@@ -56,7 +64,6 @@
   #armPoint{opacity:0;transition:opacity .3s}
   .pointing #armPoint{opacity:1}
   .pointing #armRest{opacity:0}
-  /* listening ears: little sound arcs by the mascot while you talk */
   #hearing{opacity:0;transition:opacity .3s}
   #hearing.on{opacity:1}
   #hearing path{animation:tdot 1s infinite}
@@ -71,13 +78,15 @@
 </style></head>
 <body>
 <div id="stagewrap">
-  <div id="bar">
-    <input id="topic" class="hand" placeholder="type… or hold SPACE and talk" autocomplete="off">
-    <button id="go" class="btn dark">draw it</button>
-    <button id="mic" class="btn" title="hold to talk (or hold SPACE)">🎤 hold</button>
-    <button id="cam" class="btn" title="camera bubble on/off">📷</button>
-  </div>
+  <div id="splash"><div class="inner">
+    <h1>👁 inkling-live</h1>
+    <p>your agent draws while you talk — completely hands-free</p>
+    <p style="font-size:16px">tap once to wake it up (mic + voice)</p>
+    <div id="tapdot">▶</div>
+  </div></div>
+
   <div id="status" class="hand"></div>
+  <div id="corner"><button id="cam" class="btn" title="camera mode: draw over your live camera">📷 camera</button></div>
 
   <video id="camfull" autoplay playsinline muted></video>
   <svg id="stage" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
@@ -110,7 +119,7 @@
   </svg>
 
   <div id="saywrap" class="hand"><span id="saytext"></span></div>
-  <div id="hint">inkling-live · your agent is the artist</div>
+  <div id="hint">inkling-live · just talk — it's listening</div>
 </div>
 
 <script>
@@ -121,18 +130,37 @@ const inner=document.getElementById('mascotInner');
 const bubble=document.getElementById('thinkbubble');
 const hearing=document.getElementById('hearing');
 const say=document.getElementById('saywrap'), sayText=document.getElementById('saytext');
-const bar=document.getElementById('bar'), hint=document.getElementById('hint'), status=document.getElementById('status');
+const status=document.getElementById('status'), splash=document.getElementById('splash');
 const stagewrap=document.getElementById('stagewrap'), camvid=document.getElementById('camfull');
 
-function setStatus(t){ if(!t){status.classList.remove('on');return;} status.textContent=t; status.classList.add('on'); }
+function setStatus(t,live){ if(!t){status.classList.remove('on','live');return;}
+  status.textContent=t; status.classList.add('on'); status.classList.toggle('live',!!live); }
 
-/* ---------- mascot poses ---------- */
+/* ---------- mascot poses + voice ---------- */
 function pose(p){
   mascot.classList.remove('pointing'); bubble.classList.remove('on');
   inner.classList.remove('sway','hop');
   if(p==='think'){ bubble.classList.add('on'); inner.classList.add('sway'); }
   if(p==='point'){ mascot.classList.add('pointing'); }
   if(p==='happy'){ void inner.offsetWidth; inner.classList.add('hop'); }
+}
+let speaking=false, voice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  voice = vs.find(v=>/samantha|google us english|zira|aria/i.test(v.name)) || vs.find(v=>v.lang && v.lang.startsWith('en')) || vs[0] || null;
+}
+if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+function speak(text){
+  return new Promise(res=>{
+    if(!('speechSynthesis' in window)) return res();
+    speaking=true; inner.classList.add('talking');
+    const u=new SpeechSynthesisUtterance(text);
+    if(voice) u.voice=voice; u.pitch=1.3; u.rate=1.04;
+    let done=false; const fin=()=>{ if(done)return; done=true; speaking=false; inner.classList.remove('talking'); res(); };
+    u.onend=fin; u.onerror=fin;
+    setTimeout(fin, Math.max(2500, text.length*90));      /* safety: never hang if TTS is silent */
+    speechSynthesis.speak(u);
+  });
 }
 
 /* ---------- draw-on helpers ---------- */
@@ -160,7 +188,9 @@ async function writeOn(t,dur){
 /* ---------- op handlers ---------- */
 const H={
   async say(c){ say.classList.remove('you'); sayText.textContent=''; say.classList.add('on');
-    for(const ch of String(c.text||'')){ sayText.textContent+=ch; await sleep(24);} await sleep(500); },
+    const tts=speak(String(c.text||''));                    /* mascot SPEAKS the line... */
+    for(const ch of String(c.text||'')){ sayText.textContent+=ch; await sleep(24);}  /* ...while it types on */
+    await tts; await sleep(220); },
   async mascot(c){ pose(c.pose||'idle'); await sleep(300); },
   async title(c){ const t=el('text',{x:960,y:150,'text-anchor':'middle','font-size':56,fill:'#1c1c1c',
       transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`});
@@ -180,26 +210,29 @@ const H={
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
   async clear(){ stage.style.transition='opacity .5s'; stage.style.opacity=0; await sleep(520);
     stage.innerHTML=''; stage.style.transition='none'; stage.style.opacity=1; },
-  async done(){ pose('happy'); await sleep(1200); say.classList.remove('on'); setStatus('');
-    bar.classList.remove('hidden'); hint.classList.remove('hidden'); },
+  async done(){ pose('happy'); await sleep(600); say.classList.remove('on');
+    await speak(NEXT_LINES[Math.floor(Math.random()*NEXT_LINES.length)]);
+    armListen(); },
   async _status(c){
-    if(c.state==='transcribing'){ setStatus('👂 heard you — transcribing…'); }
+    if(c.state==='transcribing'){ setStatus('👂 got it — transcribing…'); }
     if(c.state==='heard'){ say.classList.add('you','on'); sayText.textContent='🎤 “'+c.text+'”'; setStatus(''); }
-    if(c.state==='thinking'){ pose('think'); setStatus('✏️ thinking…'); bar.classList.add('hidden'); hint.classList.add('hidden'); }
+    if(c.state==='thinking'){ pose('think'); setStatus('✏️ thinking…'); }
     if(c.state==='drawing'){ setStatus(''); say.classList.remove('you'); }
   },
 };
+const GREETING="Hey! I'm inkling. Ask me anything — just talk, and I'll draw it for you!";
+const NEXT_LINES=["Done! What should I draw next?","What else should I explain?","Ask me another one!","Next topic — I'm listening!"];
 
 /* ---------- queue player ---------- */
 const q=[]; let playing=false;
 async function pump(){ if(playing) return; playing=true;
   while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} } }
   playing=false; }
-window.__inject=(ops)=>{ops.forEach(o=>q.push(o));pump();}; // debug/test hook — same path as ws
+window.__inject=(ops)=>{ops.forEach(o=>q.push(o));pump();}; /* debug/test hook — same path as ws */
 const ws=new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage=ev=>{ try{ q.push(JSON.parse(ev.data)); pump(); }catch(e){} };
 
-/* ---------- camera bubble + frame capture ---------- */
+/* ---------- camera (fullscreen AR) ---------- */
 let camStream=null;
 async function toggleCam(){
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null;
@@ -209,53 +242,66 @@ async function toggleCam(){
     camvid.srcObject=camStream; stagewrap.classList.add('camon'); document.getElementById('cam').classList.add('on');
   }catch(e){ setStatus('camera blocked: '+e.name); setTimeout(()=>setStatus(''),2500); }
 }
+document.getElementById('cam').onclick=toggleCam;
 function grabFrame(){
   if(!camStream) return null;
-  const c=document.createElement('canvas'); c.width=camvid.videoWidth||640; c.height=camvid.videoHeight||640;
+  const c=document.createElement('canvas'); c.width=camvid.videoWidth||640; c.height=camvid.videoHeight||480;
   c.getContext('2d').drawImage(camvid,0,0);
   return c.toDataURL('image/jpeg',0.85);
 }
 
-/* ---------- ask: typed ---------- */
-async function ask(){ const v=document.getElementById('topic').value.trim(); if(!v) return;
-  stage.innerHTML=''; say.classList.remove('on');
-  await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({topic:v,frame:grabFrame()})}); }
-document.getElementById('go').onclick=ask;
-document.getElementById('topic').addEventListener('keydown',e=>{ if(e.key==='Enter') ask(); });
-
-/* ---------- ask: voice (hold SPACE or hold the mic button) ---------- */
-let rec=null, chunks=[], micStream=null, listening=false;
-async function startTalk(){
-  if(listening) return;
-  try{ micStream=micStream||await navigator.mediaDevices.getUserMedia({audio:true}); }
-  catch(e){ setStatus('mic blocked: '+e.name); setTimeout(()=>setStatus(''),2500); return; }
-  listening=true; chunks=[];
-  rec=new MediaRecorder(micStream,{mimeType:'audio/webm'});
-  rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
-  rec.start();
-  document.getElementById('mic').classList.add('listening');
-  hearing.classList.add('on'); setStatus('🔴 listening… release to ask');
-}
-async function stopTalk(){
-  if(!listening) return; listening=false;
-  document.getElementById('mic').classList.remove('listening');
-  hearing.classList.remove('on'); setStatus('');
-  await new Promise(r=>{ rec.onstop=r; rec.stop(); });
-  const blob=new Blob(chunks,{type:'audio/webm'});
-  if(blob.size<2000) return; // too short — ignore
+/* ---------- hands-free voice loop: VAD listens, you just talk ---------- */
+let micStream=null, analyser=null, vadArmed=false, rec=null, chunks=[];
+function armListen(){ vadArmed=true; pose('idle'); setStatus('🎙 just talk — I\'m listening'); }
+function disarm(){ vadArmed=false; hearing.classList.remove('on'); }
+async function sendUtterance(blob){
+  if(blob.size<4500){ armListen(); return; }   /* too short — noise; keep listening */
+  disarm(); setStatus('👂 got it…');
   const fr=new FileReader();
   const dataUrl=await new Promise(r=>{ fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
   stage.innerHTML=''; say.classList.remove('on');
   await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({audio:dataUrl,frame:grabFrame()})});
 }
-const micBtn=document.getElementById('mic');
-micBtn.addEventListener('mousedown',startTalk);
-micBtn.addEventListener('mouseup',stopTalk);
-micBtn.addEventListener('mouseleave',()=>{ if(listening) stopTalk(); });
-window.addEventListener('keydown',e=>{ if(e.code==='Space' && document.activeElement.id!=='topic' && !e.repeat){ e.preventDefault(); startTalk(); }});
-window.addEventListener('keyup',e=>{ if(e.code==='Space' && document.activeElement.id!=='topic'){ e.preventDefault(); stopTalk(); }});
-document.getElementById('cam').onclick=toggleCam;
+window.__sendVoice=async(dataUrl)=>{ disarm(); stage.innerHTML='';   /* test hook (same path) */
+  await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({audio:dataUrl,frame:grabFrame()})}); };
+function vadLoop(){
+  const buf=new Float32Array(analyser.fftSize);
+  let capturing=false, speechMs=0, silenceMs=0, capMs=0, last=performance.now();
+  setInterval(()=>{
+    const now=performance.now(), dt=now-last; last=now;
+    if(!vadArmed || speaking){ speechMs=silenceMs=0;
+      if(capturing){ try{rec.stop();}catch(e){} capturing=false; hearing.classList.remove('on'); } return; }
+    analyser.getFloatTimeDomainData(buf);
+    let s=0; for(let i=0;i<buf.length;i++) s+=buf[i]*buf[i];
+    const rms=Math.sqrt(s/buf.length);
+    if(rms>0.013){ speechMs+=dt; silenceMs=0; } else { silenceMs+=dt; if(!capturing) speechMs=0; }
+    if(!capturing && speechMs>260){                                   /* speech started → record */
+      capturing=true; capMs=0; chunks=[];
+      rec=new MediaRecorder(micStream,{mimeType:'audio/webm'});
+      rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+      rec.onstop=()=>{ sendUtterance(new Blob(chunks,{type:'audio/webm'})); };
+      rec.start();
+      hearing.classList.add('on'); setStatus('🔴 listening — pause when done',true);
+    }
+    if(capturing){ capMs+=dt;
+      if(silenceMs>1500 || capMs>25000){ capturing=false; hearing.classList.remove('on'); try{rec.stop();}catch(e){} }
+    }
+  },80);
+}
+
+/* ---------- one tap → the whole show is hands-free ---------- */
+splash.addEventListener('click', async ()=>{
+  splash.classList.add('gone');
+  try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ setStatus('mic blocked — allow the microphone and reload'); return; }
+  const ctx=new (window.AudioContext||window.webkitAudioContext)();
+  const src=ctx.createMediaStreamSource(micStream);
+  analyser=ctx.createAnalyser(); analyser.fftSize=2048; src.connect(analyser);
+  vadLoop();
+  pose('happy'); await speak(GREETING);
+  armListen();
+});
 </script>
 </body></html>
