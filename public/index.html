@@ -444,8 +444,10 @@ const GREETING="Hey! I'm inkling. Ask me anything — just talk, and I'll draw i
 
 /* ---------- queue player ---------- */
 const q=[]; let playing=false;
+const DRAWY=new Set(['icon','path','rect','circle','arrow','text','note']);
 async function pump(){ if(playing) return; playing=true;
-  while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} } }
+  while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} }
+    if(DRAWY.has(c.op)) centerSlide(liveSlide);   /* live re-centering: every stroke re-balances the slide */ }
   playing=false; }
 window.__inject=(ops)=>{ops.forEach(o=>q.push(o));pump();};
 const ws=new WebSocket(`ws://${location.host}/ws`);
