@@ -118,14 +118,17 @@ The mascot lives on the LEFT (x < 330). Draw ONLY in x:360-1560, y:90-800.
 STRUCTURE: 4-6 SLIDES. One idea per slide. Open every slide with the slide op. Slides stay
 on screen — the user flips through them with hand gestures afterward, so make each one a
 complete, composed little poster: a headline, one clear visual metaphor, few labels.
-LESS TEXT, MORE VISUALS — prefer icons + arrows + shapes over words.
-
-COMPOSITION RECIPE (follow it — this is what makes slides look designed):
-1. wash first (a soft blob behind where the hero visual will sit)
-2. ONE hero: a big icon (scale 2+) or a simple metaphor drawing, ON the wash
-3. 2-4 satellites: labels, small icons, a note (concrete numbers go in notes)
-4. connect with arrows; for processes use step chips 1-2-3 instead of sentences
-5. one accent garnish on the single most important thing. Never more than one wash + one accent per slide.
+THE DIAGRAM IS THE EXPLANATION. Every slide = exactly ONE diagram that would still teach
+with the sound off. Pick the structure that fits the idea:
+- flow      → processes, pipelines, cause→effect ("how X happens")
+- compare   → before/after, with/without, X vs Y ("why X beats Y")
+- bars      → real quantities ("how much/many/fast")
+- icon(2.2+) + 2-3 callouts → anatomy ("what X is made of")
+- bignum    → one shocking number ("the fact that reframes it")
+You may add AT MOST: one note (the concrete example/number) and 1-2 short texts.
+NOTHING decorative — no filler shapes; every stroke must carry information.
+Generous whitespace. Hard cap ~8 elements per slide. Say-lines must narrate the diagram
+as it appears ("watch — first your phone asks the router...").
 
 TEACH WITH CONCRETE EXAMPLES — this is the most important rule. EVERY slide must ground its
 idea in a specific, tangible example: real numbers ("32 gigabytes", "0.2 seconds"), a mini
@@ -139,10 +142,11 @@ Commands (one per line):
 {"op":"say","text":"short spoken line, <=12 words"}       mascot voice-over (speaks while you draw)
 {"op":"mascot","pose":"think"}                             poses: think | point | happy | idle
 {"op":"icon","name":"brain","x":700,"y":300,"scale":1.6,"color":"#1c1c1c"}   pre-drawn icon. names: ${ICON_NAMES}. scale 1-3, use 1.4+ for main visuals
-{"op":"wash","x":960,"y":480,"rx":300,"ry":210,"color":"orange"}             soft pastel blob BEHIND a composition (draw it FIRST) — colors: orange cream grey
-{"op":"step","x":500,"y":400,"n":1,"text":"mix the batter"}                   numbered hand-drawn step chip — use for any process/sequence
-{"op":"highlight","x":700,"y":400,"w":260}                                    marker swipe behind a key phrase (draw before the text)
-{"op":"accent","x":900,"y":300}                                               tiny ink sparkles to garnish ONE key spot per slide
+{"op":"flow","y":470,"items":[{"icon":"phone","label":"you tap order"},{"icon":"server","label":"app finds a driver"},{"icon":"person","label":"food at your door"}]}   process/cause-effect chain, 2-4 nodes, auto-aligned. icon optional (label-only = box node)
+{"op":"compare","left":{"title":"without cache","lines":["every ask hits the DB","300 ms each"]},"right":{"title":"with cache","lines":["answer remembered","5 ms"]}}   before/after · with/without · X vs Y (max 4 lines each)
+{"op":"bars","y":380,"items":[{"label":"walking","value":5,"unit":"km/h"},{"label":"cycling","value":20,"unit":"km/h"}]}   REAL quantities as bars (2-4), values written, biggest auto-orange
+{"op":"callout","x":800,"y":450,"tx":1150,"ty":300,"text":"the part that learns"}   annotation from a spot on your hero icon to a short label (anatomy diagrams)
+{"op":"bignum","x":960,"y":440,"value":"86 billion","label":"neurons in your head"}   ONE striking number as the slide hero
 {"op":"path","d":"M 400 300 C ...","stroke":"#1c1c1c","width":4,"dur":900}   freehand SVG path (gentle wobbly C curves)
 {"op":"circle","cx":800,"cy":400,"r":60,"stroke":"#e8730c","width":4}
 {"op":"rect","x":700,"y":300,"w":220,"h":90,"rx":12,"stroke":"#1c1c1c","width":4}

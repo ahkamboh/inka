@@ -467,6 +467,46 @@ const H={
     h.classList.add('hiel');
     slideTarget().appendChild(h); h.style.transition='opacity .4s'; void h.getBoundingClientRect(); h.style.opacity=0.8;
     await sleep(300); },
+  async flow(c){ // process chain: evenly spaced icon/box nodes with arrows — auto-aligned
+    const items=(c.items||[]).slice(0,4); if(!items.length) return;
+    const y=+c.y||470, n=items.length;
+    const span=Math.min(1150,n*260), step=n>1?span/(n-1):0, x0=960-span/2;
+    for(let i=0;i<n;i++){
+      const cx=n>1?x0+i*step:960, it=items[i];
+      if(i>0){ const px=x0+(i-1)*step; await H.arrow({x1:px+82,y1:y,x2:cx-82,y2:y,stroke:'#e8730c',width:4}); }
+      if(it.icon&&ICONS[String(it.icon).toLowerCase()]) await H.icon({name:it.icon,x:cx,y:y,scale:1.15});
+      else await drawOn(el('rect',{x:cx-85,y:y-42,width:170,height:84,rx:14,fill:'none',stroke:'#1c1c1c','stroke-width':4}));
+      if(it.label) await writeOn(handText({x:cx,y:y+96,'text-anchor':'middle','font-size':28,fill:'#1c1c1c'},it.label));
+    } },
+  async compare(c){ // two columns + dashed divider: before/after, with/without, X vs Y
+    const L=c.left||{}, R=c.right||{};
+    await drawOn(el('path',{d:'M 960 260 C 954 380 966 520 960 640',fill:'none',stroke:'#c9c2b4','stroke-width':3,'stroke-dasharray':'2 11'}),500);
+    const col=async(side,x,color)=>{ if(!side.title) return;
+      await writeOn(handText({x,y:308,'text-anchor':'middle','font-size':42,fill:color,'font-weight':700},side.title,true));
+      const lines=(side.lines||[]).slice(0,4);
+      for(let i=0;i<lines.length;i++)
+        await writeOn(handText({x,y:378+i*58,'text-anchor':'middle','font-size':29,fill:'#1c1c1c'},lines[i])); };
+    await col(L,690,'#7a7164'); await col(R,1230,'#e8730c'); },
+  async bars(c){ // quantities as hand-drawn bars, values written; biggest = orange
+    const items=(c.items||[]).slice(0,4); if(!items.length) return;
+    const max=Math.max(...items.map(i=>Math.abs(+i.value)||1));
+    const y0=+c.y||380, x0=660;
+    for(let i=0;i<items.length;i++){
+      const it=items[i], y=y0+i*84, w=40+(Math.abs(+it.value)/max)*400;
+      await writeOn(handText({x:x0-18,y:y+10,'text-anchor':'end','font-size':29,fill:'#1c1c1c'},it.label||''));
+      await drawOn(el('path',{d:`M ${x0} ${y} L ${x0+w} ${y+(Math.random()*5-2.5)}`,fill:'none',
+        stroke:(Math.abs(+it.value)===max)?'#e8730c':'#1c1c1c','stroke-width':32,'stroke-linecap':'round',opacity:.85}),620);
+      await writeOn(handText({x:x0+w+20,y:y+10,'font-size':28,fill:'#7a7164'},String(it.unit!=null?it.value+' '+it.unit:it.value)));
+    } },
+  async callout(c){ // annotation: marker dot on a spot → curved line → short label
+    const x=+c.x||800, y=+c.y||450, tx=+c.tx||1120, ty=+c.ty||300;
+    await drawOn(el('circle',{cx:x,cy:y,r:8,fill:'none',stroke:'#e8730c','stroke-width':5}),200);
+    await drawOn(el('path',{d:`M ${x} ${y} Q ${(x+tx)/2} ${(y+ty)/2-34} ${tx} ${ty}`,fill:'none',stroke:'#7a7164','stroke-width':3}),380);
+    if(c.text) await writeOn(handText({x:tx+(tx>=x?12:-12),y:ty+8,'text-anchor':tx>=x?'start':'end','font-size':28,fill:'#1c1c1c'},c.text)); },
+  async bignum(c){ // one striking number as the hero
+    const x=+c.x||960, y=+c.y||440;
+    await writeOn(handText({x,y,'text-anchor':'middle','font-size':112,fill:'#e8730c','font-weight':700},String(c.value??''),true));
+    if(c.label) await writeOn(handText({x,y:y+66,'text-anchor':'middle','font-size':33,fill:'#7a7164'},c.label)); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
   async done(){ await speechQ;
     centerSlide(liveSlide);
@@ -488,7 +528,7 @@ const GREETING="Hey! I'm inkling. Ask me anything — just talk, and I'll draw i
 
 /* ---------- queue player ---------- */
 const q=[]; let playing=false;
-const DRAWY=new Set(['icon','path','rect','circle','arrow','text','note','step','wash','highlight','accent']);
+const DRAWY=new Set(['icon','path','rect','circle','arrow','text','note','step','wash','highlight','accent','flow','compare','bars','callout','bignum']);
 async function pump(){ if(playing) return; playing=true;
   while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} }
     if(DRAWY.has(c.op)) centerSlide(liveSlide);   /* live re-centering: every stroke re-balances the slide */ }
