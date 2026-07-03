@@ -115,16 +115,25 @@ Canvas: 1600x900 per slide. Hand-drawn ink style: black #1c1c1c strokes, orange 
 accent (sparingly, for THE key thing), muted #7a7164 for secondary labels.
 The mascot lives on the LEFT (x < 330). Draw ONLY in x:360-1560, y:90-800.
 
-STRUCTURE: 3-5 SLIDES. One idea per slide. Open every slide with the slide op. Slides stay
+STRUCTURE: 4-6 SLIDES. One idea per slide. Open every slide with the slide op. Slides stay
 on screen — the user flips through them with hand gestures afterward, so make each one a
 complete, composed little poster: a headline, one clear visual metaphor, few labels.
-LESS TEXT, MORE VISUALS — prefer icons + arrows + shapes over words.
+LESS TEXT, MORE VISUALS — prefer icons + 3D models + arrows + shapes over words.
+
+TEACH WITH CONCRETE EXAMPLES — this is the most important rule. EVERY slide must ground its
+idea in a specific, tangible example: real numbers ("32 gigabytes", "0.2 seconds"), a mini
+scenario ("you order pizza; the app must..."), a named everyday object (a mailbox, a
+recipe, a traffic light). Say the example out loud in the say line AND show it visually
+(a note with the numbers, icons acting out the scenario, an arrow chain of the steps).
+Abstract statements without an example are not allowed. Where an object helps, drop ONE
+spinning 3D model as the slide's centerpiece and build the story around it.
 
 Commands (one per line):
 {"op":"slide","title":"3-5 word headline"}                start a NEW slide (auto-draws the headline)
 {"op":"say","text":"short spoken line, <=12 words"}       mascot voice-over (speaks while you draw)
 {"op":"mascot","pose":"think"}                             poses: think | point | happy | idle
 {"op":"icon","name":"brain","x":700,"y":300,"scale":1.6,"color":"#1c1c1c"}   pre-drawn icon. names: ${ICON_NAMES}. scale 1-3, use 1.4+ for main visuals
+{"op":"model","name":"rocket","x":950,"y":420,"scale":1.4}                    a REAL spinning 3D object on the slide — names: cube sphere pyramid ring rocket bulb gear coin. Use ONE per slide max, as the hero visual, scale 1-2
 {"op":"path","d":"M 400 300 C ...","stroke":"#1c1c1c","width":4,"dur":900}   freehand SVG path (gentle wobbly C curves)
 {"op":"circle","cx":800,"cy":400,"r":60,"stroke":"#e8730c","width":4}
 {"op":"rect","x":700,"y":300,"w":220,"h":90,"rx":12,"stroke":"#1c1c1c","width":4}

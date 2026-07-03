@@ -306,6 +306,7 @@ function nav(i,fx){
   cur=Math.max(0,Math.min(slides.length-1,i));
   stage.style.transition='transform .55s cubic-bezier(.25,.8,.3,1)';
   stage.style.transform=`translateX(${-cur*GAP}px)`;
+  if(window.P3D) P3D.setSlide(cur);
   refreshDots();
   if(fx){ swipefx.textContent=fx>0?'➤':'⬅'; swipefx.style[fx>0?'right':'left']='40px'; swipefx.style[fx>0?'left':'right']='auto';
     swipefx.classList.remove('go'); void swipefx.offsetWidth; swipefx.classList.add('go'); }
@@ -332,9 +333,10 @@ function centerSlide(s){
   const dy=((y0+y1)/2)-(bb.y+bb.height/2);
   s.content.style.transition='transform .7s cubic-bezier(.3,.8,.3,1)';
   s.content.style.transform=`translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`;
+  if(window.P3D) P3D.offset(slides.indexOf(s), dx, dy);
 }
 function resetShow(){ stage.innerHTML=''; stage.style.transition='none'; stage.style.transform='translateX(0)';
-  slides=[]; cur=0; liveSlide=null; refreshDots(); }
+  slides=[]; cur=0; liveSlide=null; refreshDots(); if(window.P3D) P3D.reset(); }
 
 /* ---------- draw-on helpers (double-stroke ink for a real pen feel) ---------- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -423,6 +425,9 @@ const H={
       fill:'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4,'stroke-linecap':'round'}),240); },
   async text(c){ await writeOn(handText({x:c.x,y:c.y,'font-size':c.size||30,fill:c.color||'#1c1c1c',
       transform:`rotate(${(Math.random()*3-1.5).toFixed(2)} ${c.x} ${c.y})`},c.text)); },
+  async model(c){ if(!window.P3D) return; drawingFlash();
+    window.P3D.add(c.name, +c.x||800, +c.y||420, +c.scale||1, slides.length-1);
+    await sleep(700); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
   async done(){ await speechQ;
     centerSlide(liveSlide);
@@ -444,7 +449,7 @@ const GREETING="Hey! I'm inkling. Ask me anything — just talk, and I'll draw i
 
 /* ---------- queue player ---------- */
 const q=[]; let playing=false;
-const DRAWY=new Set(['icon','path','rect','circle','arrow','text','note']);
+const DRAWY=new Set(['icon','path','rect','circle','arrow','text','note','model']);
 async function pump(){ if(playing) return; playing=true;
   while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} }
     if(DRAWY.has(c.op)) centerSlide(liveSlide);   /* live re-centering: every stroke re-balances the slide */ }
