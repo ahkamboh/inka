@@ -2,6 +2,8 @@
 <html><head><meta charset="utf-8"><title>inkling-live</title>
 <style>
   :root{ --ink:#1c1c1c; --accent:#e8730c; --muted:#7a7164; --paper:#fffdf8; }
+  @font-face{font-family:'Caveat';src:url('/fonts/caveat-700.woff2') format('woff2');font-weight:700}
+  @font-face{font-family:'PatrickHand';src:url('/fonts/patrick-hand.woff2') format('woff2')}
   html,body{margin:0;height:100%;background:#eae6dd;overflow:hidden}
   body{display:grid;place-items:center;font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
   #stagewrap{position:relative;width:min(96vw,calc(96vh*16/9));aspect-ratio:16/9;background:var(--paper);
@@ -306,7 +308,6 @@ function nav(i,fx){
   cur=Math.max(0,Math.min(slides.length-1,i));
   stage.style.transition='transform .55s cubic-bezier(.25,.8,.3,1)';
   stage.style.transform=`translateX(${-cur*GAP}px)`;
-  if(window.P3D) P3D.setSlide(cur);
   refreshDots();
   if(fx){ swipefx.textContent=fx>0?'➤':'⬅'; swipefx.style[fx>0?'right':'left']='40px'; swipefx.style[fx>0?'left':'right']='auto';
     swipefx.classList.remove('go'); void swipefx.offsetWidth; swipefx.classList.add('go'); }
@@ -333,10 +334,9 @@ function centerSlide(s){
   const dy=((y0+y1)/2)-(bb.y+bb.height/2);
   s.content.style.transition='transform .7s cubic-bezier(.3,.8,.3,1)';
   s.content.style.transform=`translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`;
-  if(window.P3D) P3D.offset(slides.indexOf(s), dx, dy);
 }
 function resetShow(){ stage.innerHTML=''; stage.style.transition='none'; stage.style.transform='translateX(0)';
-  slides=[]; cur=0; liveSlide=null; refreshDots(); if(window.P3D) P3D.reset(); }
+  slides=[]; cur=0; liveSlide=null; refreshDots(); }
 
 /* ---------- draw-on helpers (double-stroke ink for a real pen feel) ---------- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -370,9 +370,11 @@ async function writeOn(t,dur,target){
   t.style.clipPath='inset(-20% -5% -20% 0)';
   await sleep(d+40);
 }
-function handText(attrs,content){
+const F_TITLE="'Caveat','Bradley Hand','Chalkboard SE',cursive";
+const F_TEXT="'PatrickHand','Bradley Hand','Chalkboard SE',cursive";
+function handText(attrs,content,title){
   const t=el('text',attrs);
-  t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive";
+  t.style.fontFamily=title?F_TITLE:F_TEXT;
   t.textContent=content||''; return t;
 }
 
@@ -380,12 +382,16 @@ function handText(attrs,content){
 const H={
   async slide(c){ await speechQ;
     const sl=newSlide(c.title||'');
-    if(c.title){ const t=handText({x:960,y:150,'text-anchor':'middle','font-size':54,fill:'#1c1c1c',
-        transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`},c.title);
+    if(c.title){
+      const w=Math.min(760,(c.title||'').length*30), x1=960-w/2, x2=960+w/2;
+      const hi=el('path',{d:`M ${x1-14} 148 Q 960 ${138+Math.random()*8} ${x2+14} 146`,
+        fill:'none',stroke:'#ffd9ad','stroke-width':52,'stroke-linecap':'round',opacity:0});
+      sl.head.appendChild(hi); hi.style.transition='opacity .5s'; void hi.getBoundingClientRect(); hi.style.opacity=0.75;
+      const t=handText({x:960,y:158,'text-anchor':'middle','font-size':76,fill:'#1c1c1c','font-weight':700,
+        transform:`rotate(${(Math.random()*1.6-0.8).toFixed(2)} 960 150)`},c.title,true);
       await writeOn(t,undefined,sl.head);
-      const w=Math.min(680,(c.title||'').length*24), x1=960-w/2, x2=960+w/2;
-      await drawOn(el('path',{d:`M ${x1} 172 C ${x1+w*0.25} 165 ${x1+w*0.4} 180 ${960} 172 C ${x2-w*0.3} 165 ${x2-w*0.15} 179 ${x2} 171`,
-        fill:'none',stroke:'#e8730c','stroke-width':4,'stroke-linecap':'round'}),600,sl.head); } },
+      await drawOn(el('path',{d:`M ${x1} 182 C ${x1+w*0.25} 175 ${x1+w*0.4} 190 ${960} 182 C ${x2-w*0.3} 175 ${x2-w*0.15} 189 ${x2} 181`,
+        fill:'none',stroke:'#e8730c','stroke-width':5,'stroke-linecap':'round'}),600,sl.head); } },
   async clear(){ await H.slide({title:''}); },        /* legacy */
   async title(c){ await H.slide({title:c.text||''}); }, /* legacy */
   async say(c){ enqueueSpeech(String(c.text||''), c.audio||null); await sleep(250); },
@@ -395,6 +401,8 @@ const H={
     const sc=(+c.scale||1.4), color=c.color||'#1c1c1c';
     const g=el('g',{transform:`translate(${(+c.x||800)-50*sc},${(+c.y||400)-50*sc}) scale(${sc}) rotate(${(Math.random()*3-1.5).toFixed(1)} 50 50)`});
     slideTarget().appendChild(g);
+    const sh=el('ellipse',{cx:50,cy:104,rx:34,ry:6,fill:'#1c1c1c',opacity:0});
+    g.appendChild(sh); sh.style.transition='opacity .6s'; void sh.getBoundingClientRect(); sh.style.opacity=0.10;
     for(const d of spec){
       await drawOn(el('path',{d,fill:'none',stroke:color,'stroke-width':(4.2/Math.sqrt(sc)).toFixed(2),
         'stroke-linecap':'round','stroke-linejoin':'round'}),Math.min(700,220+d.length*3),g);
@@ -406,6 +414,9 @@ const H={
     const bg=el('rect',{x,y,width:w,height:h,rx:6,fill:'#ffd9ad',stroke:'#e8730c','stroke-width':3});
     bg.style.opacity=0; g.appendChild(bg);
     bg.style.transition='opacity .4s'; void bg.getBoundingClientRect(); bg.style.opacity=0.92;
+    const tape=el('rect',{x:x+w/2-45,y:y-12,width:90,height:24,rx:3,fill:'#e8730c',opacity:0,
+      transform:`rotate(${(Math.random()*8-4).toFixed(1)} ${x+w/2} ${y})`});
+    g.appendChild(tape); tape.style.transition='opacity .4s'; void tape.getBoundingClientRect(); tape.style.opacity=0.35;
     await sleep(320);
     const words=String(c.text||'').split(' '); const lines=[]; let line='';
     for(const wd of words){ if((line+' '+wd).trim().length>Math.floor(w/13)){ lines.push(line.trim()); line=wd; } else line+=' '+wd; }
@@ -425,9 +436,30 @@ const H={
       fill:'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4,'stroke-linecap':'round'}),240); },
   async text(c){ await writeOn(handText({x:c.x,y:c.y,'font-size':c.size||30,fill:c.color||'#1c1c1c',
       transform:`rotate(${(Math.random()*3-1.5).toFixed(2)} ${c.x} ${c.y})`},c.text)); },
-  async model(c){ if(!window.P3D) return; drawingFlash();
-    window.P3D.add(c.name, +c.x||800, +c.y||420, +c.scale||1, slides.length-1);
-    await sleep(700); },
+  async wash(c){ // soft pastel blob grounding a composition — depth without noise
+    const colors={orange:'#ffe3c4',cream:'#fff3dd',grey:'#eee9df'};
+    const w=el('ellipse',{cx:c.x||960,cy:c.y||480,rx:c.rx||300,ry:c.ry||210,fill:colors[c.color]||colors.orange,opacity:0});
+    slideTarget().appendChild(w); w.style.transition='opacity .8s'; void w.getBoundingClientRect(); w.style.opacity=0.55;
+    await sleep(500); },
+  async step(c){ // numbered hand-drawn step chip: ① ② ③
+    const {x=500,y=400,n=1}=c;
+    const g=el('g',{transform:`rotate(${(Math.random()*4-2).toFixed(1)} ${x} ${y})`});
+    slideTarget().appendChild(g);
+    await drawOn(el('circle',{cx:x,cy:y,r:30,fill:'#fff',stroke:'#e8730c','stroke-width':4.5}),380,g);
+    await writeOn(handText({x,y:y+11,'text-anchor':'middle','font-size':34,fill:'#e8730c','font-weight':700},String(n),true),240,g);
+    if(c.text) await writeOn(handText({x:x+46,y:y+10,'font-size':30,fill:'#1c1c1c'},c.text),undefined,g); },
+  async accent(c){ // tiny ink sparkles/dashes to garnish a spot — use sparingly
+    const {x=900,y=300}=c; const g=el('g',{});
+    slideTarget().appendChild(g);
+    for(let i=0;i<3;i++){ const a=(-0.4+i*0.5)+Math.random()*0.2, r1=18+Math.random()*8, r2=r1+16+Math.random()*8;
+      await drawOn(el('path',{d:`M ${x+Math.cos(a)*r1} ${y-Math.sin(a)*r1} L ${x+Math.cos(a)*r2} ${y-Math.sin(a)*r2}`,
+        fill:'none',stroke:'#e8730c','stroke-width':4,'stroke-linecap':'round'}),160,g); } },
+  async highlight(c){ // marker swipe under/behind a phrase
+    const {x=700,y=400,w=260}=c;
+    const h=el('path',{d:`M ${x} ${y} Q ${x+w/2} ${y-6+Math.random()*12} ${x+w} ${y}`,
+      fill:'none',stroke:'#ffd9ad','stroke-width':34,'stroke-linecap':'round',opacity:0});
+    slideTarget().appendChild(h); h.style.transition='opacity .4s'; void h.getBoundingClientRect(); h.style.opacity=0.8;
+    await sleep(300); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
   async done(){ await speechQ;
     centerSlide(liveSlide);
@@ -449,7 +481,7 @@ const GREETING="Hey! I'm inkling. Ask me anything — just talk, and I'll draw i
 
 /* ---------- queue player ---------- */
 const q=[]; let playing=false;
-const DRAWY=new Set(['icon','path','rect','circle','arrow','text','note','model']);
+const DRAWY=new Set(['icon','path','rect','circle','arrow','text','note','step','wash','highlight','accent']);
 async function pump(){ if(playing) return; playing=true;
   while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} }
     if(DRAWY.has(c.op)) centerSlide(liveSlide);   /* live re-centering: every stroke re-balances the slide */ }
