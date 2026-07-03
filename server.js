@@ -201,15 +201,12 @@ function runBrain(topic, framePath) {
       if (!started) { started = true; cast({ op: '_status', state: 'drawing' }); }
       if (cmd.op === 'done') sentDone = true;
       fs.appendFileSync(LOG, JSON.stringify(cmd) + '\n');
-      if (cmd.op === 'say' && ttsReady) {
-        // sequence-preserving async: hold the op until its audio exists (usually <1s,
-        // while earlier ops are still drawing), then broadcast with the audio url.
-        sayChain = sayChain.then(async () => { cmd.audio = await ttsGen(String(cmd.text || '')); cast(cmd); });
-      } else if (cmd.op === 'done') {
-        sayChain = sayChain.then(() => cast(cmd));      // done must come after the last say
-      } else {
+      // STRICT ORDER: every op flows through one chain; a say waits for its wav,
+      // everything after it queues behind — so narration reaches the stage WITH its beat.
+      sayChain = sayChain.then(async () => {
+        if (cmd.op === 'say' && ttsReady) cmd.audio = await ttsGen(String(cmd.text || ''));
         cast(cmd);
-      }
+      });
     }
   };
   child.stdout.on('data', d => {

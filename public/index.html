@@ -92,11 +92,11 @@
   @keyframes spark{0%{transform:scale(0) rotate(0deg);opacity:1}70%{opacity:1}100%{transform:scale(1.4) rotate(40deg);opacity:0}}
 
   #mascotInner,#shadow{display:none}  /* the 3D mascot replaces the flat body */
-  #saywrap{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);max-width:64%;z-index:4;
-    background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 22px;font-size:24px;color:var(--ink);
-    box-shadow:5px 6px 0 rgba(28,28,28,.14);opacity:0;transition:opacity .3s}
+  #saywrap{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);max-width:54%;z-index:4;
+    background:#fff;border:2.5px solid var(--ink);border-radius:12px;padding:7px 15px;font-size:16.5px;color:var(--ink);
+    box-shadow:3px 4px 0 rgba(28,28,28,.13);opacity:0;transition:opacity .3s}
   #saywrap.on{opacity:1}
-  #saywrap.you{border-color:#c9c2b4;color:var(--muted);font-size:20px}
+  #saywrap.you{border-color:#c9c2b4;color:var(--muted);font-size:15px}
 </style></head>
 <body>
 <div id="stagewrap">
@@ -287,16 +287,7 @@ async function speakLine(text,audioUrl){
   if(audioUrl) await playWav(audioUrl); else await speakBrowser(text);
   speaking=false; inner.classList.remove('talking'); if(window.M3D) M3D.talking(false);
 }
-let speechQ=Promise.resolve();
-function enqueueSpeech(text,audioUrl){
-  speechQ=speechQ.then(async()=>{
-    say.classList.remove('you'); sayText.textContent=''; say.classList.add('on');
-    const audio=speakLine(text,audioUrl);
-    for(const ch of String(text||'')){ sayText.textContent+=ch; await sleep(22); }
-    await audio;
-  });
-  return speechQ;
-}
+let lineDone=Promise.resolve();   // resolves when the current narration line ends
 
 /* ---------- SLIDE ENGINE ---------- */
 const GAP=1700; let slides=[], cur=0, liveSlide=null;
@@ -383,7 +374,7 @@ function handText(attrs,content,title){
 
 /* ---------- op handlers ---------- */
 const H={
-  async slide(c){ await speechQ;
+  async slide(c){ await lineDone;
     const sl=newSlide(c.title||'');
     if(c.title){
       const w=Math.min(760,(c.title||'').length*30), x1=960-w/2, x2=960+w/2;
@@ -398,7 +389,12 @@ const H={
         fill:'none',stroke:'#e8730c','stroke-width':5,'stroke-linecap':'round'}),600,sl.head); } },
   async clear(){ await H.slide({title:''}); },        /* legacy */
   async title(c){ await H.slide({title:c.text||''}); }, /* legacy */
-  async say(c){ enqueueSpeech(String(c.text||''), c.audio||null); await sleep(250); },
+  async say(c){ await lineDone;                     /* previous line finishes first */
+    const text=String(c.text||'');
+    say.classList.remove('you'); sayText.textContent=''; say.classList.add('on');
+    lineDone=(async()=>{ const a=speakLine(text,c.audio||null);
+      for(const ch of text){ sayText.textContent+=ch; await sleep(18); } await a; })();
+    await sleep(140); },                              /* voice + the beat's drawing start TOGETHER */
   async mascot(c){ pose(c.pose||'idle'); await sleep(300); },
   async icon(c){
     const spec=ICONS[String(c.name||'').toLowerCase()]; if(!spec) return;
@@ -508,7 +504,7 @@ const H={
     await writeOn(handText({x,y,'text-anchor':'middle','font-size':112,fill:'#e8730c','font-weight':700},String(c.value??''),true));
     if(c.label) await writeOn(handText({x,y:y+66,'text-anchor':'middle','font-size':33,fill:'#7a7164'},c.label)); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
-  async done(){ await speechQ;
+  async done(){ await lineDone;
     centerSlide(liveSlide);
     pose('happy'); sparkle(); await sleep(700); say.classList.remove('on');
     if(slides.length>1) setStatus('👋 wave your hand (or ←/→) to flip slides');
