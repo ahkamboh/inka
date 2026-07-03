@@ -19,6 +19,7 @@ app.use(express.json({ limit: '40mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/vendor/tasks-vision', express.static(path.join(__dirname, 'node_modules', '@mediapipe', 'tasks-vision')));
 app.use('/models', express.static(path.join(__dirname, 'models')));
+app.use('/vendor/three', express.static(path.join(__dirname, 'node_modules', 'three', 'build')));
 
 const server = app.listen(PORT, () =>
   console.log(`👁  inkling-live stage → http://localhost:${PORT}  (model: ${MODEL})`));

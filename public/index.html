@@ -86,6 +86,7 @@
   .spark{transform-box:fill-box;transform-origin:center;animation:spark .9s ease-out forwards}
   @keyframes spark{0%{transform:scale(0) rotate(0deg);opacity:1}70%{opacity:1}100%{transform:scale(1.4) rotate(40deg);opacity:0}}
 
+  #mascotInner,#shadow{display:none}  /* the 3D mascot replaces the flat body */
   #saywrap{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);max-width:64%;z-index:4;
     background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 22px;font-size:24px;color:var(--ink);
     box-shadow:5px 6px 0 rgba(28,28,28,.14);opacity:0;transition:opacity .3s}
@@ -177,6 +178,7 @@
   <div id="hint">inkling-live · talk to draw · wave to flip slides</div>
 </div>
 
+<script type="module" src="/mascot3d.js"></script>
 <script>
 const SVG='http://www.w3.org/2000/svg';
 const stage=document.getElementById('drawing');
@@ -215,6 +217,7 @@ const ICONS={
 
 /* ---------- mascot poses + fx ---------- */
 function pose(p){
+  if(window.M3D) M3D.pose(p);
   mascot.classList.remove('pointing','drawing','waving'); bubble.classList.remove('on');
   inner.classList.remove('sway','hop');
   if(p==='think'){ bubble.classList.add('on'); inner.classList.add('sway'); }
@@ -225,6 +228,7 @@ function pose(p){
 }
 let drawTimer=null;
 function drawingFlash(){
+  if(window.M3D) M3D.scribble();
   if(!mascot.classList.contains('pointing')) mascot.classList.add('drawing');
   clearTimeout(drawTimer);
   drawTimer=setTimeout(()=>mascot.classList.remove('drawing'),900);
@@ -274,9 +278,9 @@ function playWav(url){
   });
 }
 async function speakLine(text,audioUrl){
-  speaking=true; inner.classList.add('talking');
+  speaking=true; inner.classList.add('talking'); if(window.M3D) M3D.talking(true);
   if(audioUrl) await playWav(audioUrl); else await speakBrowser(text);
-  speaking=false; inner.classList.remove('talking');
+  speaking=false; inner.classList.remove('talking'); if(window.M3D) M3D.talking(false);
 }
 let speechQ=Promise.resolve();
 function enqueueSpeech(text,audioUrl){
