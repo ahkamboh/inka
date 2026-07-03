@@ -17,6 +17,8 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'inkling-live-'));
 const app = express();
 app.use(express.json({ limit: '40mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/vendor/tasks-vision', express.static(path.join(__dirname, 'node_modules', '@mediapipe', 'tasks-vision')));
+app.use('/models', express.static(path.join(__dirname, 'models')));
 
 const server = app.listen(PORT, () =>
   console.log(`👁  inkling-live stage → http://localhost:${PORT}  (model: ${MODEL})`));
@@ -101,36 +103,40 @@ async function pregenLines() {
 }
 
 // ---- the drawing brain's contract ----
-const BRAIN = (topic, framePath) => `You are the live drawing brain of a hand-drawn explainer mascot, performing on screen while the user records.
-${framePath ? `THE USER'S CAMERA IS ON. FIRST use the Read tool to open ${framePath} — it is the live camera/screen frame from this exact moment. Look at it. Your FIRST "say" line must react naturally to something you actually SEE (the person, their gesture, the object or screen they're showing). Weave what you see into the explainer where it helps.` : ''}
+const ICON_NAMES = 'person brain lightbulb gear cloud server phone laptop chart magnifier heart star database lock rocket money';
+const BRAIN = (topic, framePath) => `You are the live drawing brain of a hand-drawn explainer mascot, performing a SLIDE SHOW on screen while the user records.
+${framePath ? `THE USER'S CAMERA IS ON. FIRST use the Read tool to open ${framePath} — it is the live camera/screen frame from this exact moment. Look at it. Your FIRST "say" line must react naturally to something you actually SEE. Weave what you see into the explainer where it helps.` : ''}
 The user asked (spoken aloud): "${topic}"
 
 OUTPUT FORMAT — CRITICAL: ${framePath ? 'after Reading the frame, ' : ''}output ONLY newline-delimited JSON commands (NDJSON). No prose, no markdown fences. Every line is one JSON object.
 
-Canvas: 1600x900, white paper. Hand-drawn ink style: black #1c1c1c strokes, orange #e8730c
+Canvas: 1600x900 per slide. Hand-drawn ink style: black #1c1c1c strokes, orange #e8730c
 accent (sparingly, for THE key thing), muted #7a7164 for secondary labels.
 The mascot lives on the LEFT (x < 330). Draw ONLY in x:360-1560, y:90-800.
 
-Structure: 3-5 visual BEATS. One idea per beat. LESS TEXT, MORE SHAPES — boxes, arrows,
-circles, simple metaphor drawings. Labels <= 4 words. Title <= 5 words.
+STRUCTURE: 3-5 SLIDES. One idea per slide. Open every slide with the slide op. Slides stay
+on screen — the user flips through them with hand gestures afterward, so make each one a
+complete, composed little poster: a headline, one clear visual metaphor, few labels.
+LESS TEXT, MORE VISUALS — prefer icons + arrows + shapes over words.
 
 Commands (one per line):
-{"op":"say","text":"short spoken line, <=12 words"}     mascot speech caption
-{"op":"mascot","pose":"think"}                           poses: think | point | happy | idle
-{"op":"title","text":"the title"}
-{"op":"path","d":"M 400 300 C ...","stroke":"#1c1c1c","width":4,"dur":900}   freehand SVG path, slightly wobbly (gentle C curves, never ruler-straight)
+{"op":"slide","title":"3-5 word headline"}                start a NEW slide (auto-draws the headline)
+{"op":"say","text":"short spoken line, <=12 words"}       mascot voice-over (speaks while you draw)
+{"op":"mascot","pose":"think"}                             poses: think | point | happy | idle
+{"op":"icon","name":"brain","x":700,"y":300,"scale":1.6,"color":"#1c1c1c"}   pre-drawn icon. names: ${ICON_NAMES}. scale 1-3, use 1.4+ for main visuals
+{"op":"path","d":"M 400 300 C ...","stroke":"#1c1c1c","width":4,"dur":900}   freehand SVG path (gentle wobbly C curves)
 {"op":"circle","cx":800,"cy":400,"r":60,"stroke":"#e8730c","width":4}
 {"op":"rect","x":700,"y":300,"w":220,"h":90,"rx":12,"stroke":"#1c1c1c","width":4}
+{"op":"note","x":900,"y":250,"w":240,"h":110,"text":"sticky note text"}      orange sticky note with text
 {"op":"arrow","x1":500,"y1":400,"x2":700,"y2":400,"stroke":"#1c1c1c"}
 {"op":"text","x":760,"y":350,"text":"label","size":30,"color":"#1c1c1c"}     size 26-40
 {"op":"pause","ms":800}
-{"op":"clear"}                                            end of beat: wipe drawings (mascot stays)
-{"op":"done"}                                             MUST be the last line
+{"op":"done"}                                              MUST be the last line
 
-Pacing: open with say+think, then title. Each beat: say what you're about to show, mascot
-pose, then draw it (3-8 shapes/labels), small pause. Alternate think/point/happy so the
-mascot feels alive. 20-40 commands total. Finish with a happy pose, a one-line takeaway
-say, then {"op":"done"}.`;
+Pacing: open with a say (hook) + think pose. Then per slide: slide op → say what this slide
+shows → compose it (an icon or two + arrows + 2-4 labels) → small pause. Alternate
+think/point/happy. 25-45 commands total. Finish with a happy pose + one-line takeaway say,
+then {"op":"done"}.`;
 
 let child = null;
 

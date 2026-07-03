@@ -10,9 +10,7 @@
   .hand{font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
   .hidden{opacity:0;pointer-events:none}
 
-  /* ---- start splash ---- */
-  #splash{position:absolute;inset:0;z-index:9;background:var(--paper);display:grid;place-items:center;cursor:pointer;
-    transition:opacity .6s}
+  #splash{position:absolute;inset:0;z-index:9;background:var(--paper);display:grid;place-items:center;cursor:pointer;transition:opacity .6s}
   #splash.gone{opacity:0;pointer-events:none}
   #splash .inner{text-align:center;color:var(--ink)}
   #splash h1{font-size:44px;margin:0 0 10px;font-weight:600}
@@ -21,20 +19,27 @@
     margin:26px auto 0;font-size:34px;animation:tap 1.6s ease-in-out infinite}
   @keyframes tap{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(232,115,12,.35)}50%{transform:scale(1.07);box-shadow:0 0 0 22px rgba(232,115,12,0)}}
 
-  /* ---- status chip ---- */
   #status{position:absolute;left:26px;top:22px;z-index:4;font-size:16px;color:var(--muted);
     background:#fff;border:2px solid #e5e0d6;border-radius:10px;padding:7px 14px;opacity:0;transition:opacity .3s}
   #status.on{opacity:1}
   #status.live{color:#e23b3b;border-color:#e23b3b}
 
-  /* ---- corner controls ---- */
   #corner{position:absolute;right:16px;top:14px;z-index:5;display:flex;gap:8px;transition:opacity .4s}
   .btn{padding:9px 13px;font-size:15px;border:2.5px solid var(--ink);border-radius:11px;background:#fff;
     color:var(--ink);cursor:pointer;font-family:inherit;user-select:none}
   #cam.on{background:var(--accent);border-color:var(--accent);color:#fff}
   #hint{position:absolute;bottom:14px;right:20px;font-size:13px;color:#b9b2a6;z-index:5;transition:opacity .5s}
 
-  /* ---- fullscreen camera AR mode ---- */
+  /* slide dots + swipe feedback */
+  #dots{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:5;display:flex;gap:9px;opacity:0;transition:opacity .4s}
+  #dots.on{opacity:1}
+  #dots .d{width:13px;height:13px;border-radius:50%;border:2.5px solid var(--ink);background:#fff;cursor:pointer;transition:background .25s,transform .25s}
+  #dots .d.cur{background:var(--accent);border-color:var(--accent);transform:scale(1.25)}
+  #swipefx{position:absolute;top:50%;z-index:6;font-size:84px;color:var(--accent);opacity:0;transform:translateY(-50%);pointer-events:none;
+    text-shadow:0 0 14px #fff,0 0 6px #fff}
+  #swipefx.go{animation:swf .55s ease-out}
+  @keyframes swf{0%{opacity:0;transform:translateY(-50%) scale(.6)}30%{opacity:1}100%{opacity:0;transform:translateY(-50%) scale(1.25)}}
+
   #camfull{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;z-index:1}
   #stagewrap.camon{background:#101010}
   #stagewrap.camon #camfull{display:block}
@@ -43,12 +48,11 @@
     filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,255,.9));}
   #stagewrap.camon #status{border-color:#fff}
 
-  /* ---- mascot ---- */
   .breathe{transform-box:fill-box;transform-origin:center bottom;animation:br 3s ease-in-out infinite}
   @keyframes br{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.035)}}
   .eyes{transform-box:fill-box;transform-origin:center;animation:blink 3.6s infinite;transition:transform .35s}
   @keyframes blink{0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.08)}97%{transform:scaleY(1)}}
-  .drawing .eyes{transform:translateX(5px)}                 /* glances at its canvas */
+  .drawing .eyes{transform:translateX(5px)}
   .hop{animation:hop .55s ease-in-out 2}
   @keyframes hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-26px)}}
   .sway{transform-box:fill-box;transform-origin:center bottom;animation:sway 1.6s ease-in-out infinite}
@@ -83,7 +87,6 @@
   .spark{transform-box:fill-box;transform-origin:center;animation:spark .9s ease-out forwards}
   @keyframes spark{0%{transform:scale(0) rotate(0deg);opacity:1}70%{opacity:1}100%{transform:scale(1.4) rotate(40deg);opacity:0}}
 
-  /* ---- speech caption ---- */
   #saywrap{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);max-width:64%;z-index:4;
     background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 22px;font-size:24px;color:var(--ink);
     box-shadow:5px 6px 0 rgba(28,28,28,.14);opacity:0;transition:opacity .3s}
@@ -94,13 +97,15 @@
 <div id="stagewrap">
   <div id="splash"><div class="inner">
     <h1>👁 inkling-live</h1>
-    <p>your agent draws while you talk — completely hands-free</p>
+    <p>your agent draws slides while you talk — flip them with a wave of your hand</p>
     <p style="font-size:16px">tap once to wake it up (mic + voice)</p>
     <div id="tapdot">▶</div>
   </div></div>
 
   <div id="status" class="hand"></div>
-  <div id="corner"><button id="cam" class="btn" title="camera mode: draw over your live camera">📷 camera</button></div>
+  <div id="corner"><button id="cam" class="btn" title="camera mode: AR + hand-gesture slides">📷 camera</button></div>
+  <div id="dots"></div>
+  <div id="swipefx">➤</div>
 
   <video id="camfull" autoplay playsinline muted></video>
   <svg id="stage" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
@@ -114,7 +119,6 @@
     <rect id="grain" width="1600" height="900" fill="url(#grainDots)"/>
     <g id="drawing"></g>
 
-    <!-- mascot (inkling bean) -->
     <g id="mascot" transform="translate(60,470)">
       <ellipse id="shadow" cx="219" cy="395" rx="64" ry="10" fill="#1c1c1c" opacity="0.13"/>
       <g id="mascotInner" class="breathe">
@@ -156,7 +160,7 @@
   </svg>
 
   <div id="saywrap" class="hand"><span id="saytext"></span></div>
-  <div id="hint">inkling-live · just talk — it's listening</div>
+  <div id="hint">inkling-live · talk to draw · wave to flip slides</div>
 </div>
 
 <script>
@@ -170,11 +174,32 @@ const sparks=document.getElementById('sparks');
 const say=document.getElementById('saywrap'), sayText=document.getElementById('saytext');
 const status=document.getElementById('status'), splash=document.getElementById('splash');
 const stagewrap=document.getElementById('stagewrap'), camvid=document.getElementById('camfull');
+const dotsEl=document.getElementById('dots'), swipefx=document.getElementById('swipefx');
 
 function setStatus(t,live){ if(!t){status.classList.remove('on','live');return;}
   status.textContent=t; status.classList.add('on'); status.classList.toggle('live',!!live); }
 
-/* ---------- mascot poses ---------- */
+/* ---------- hand-drawn ICON library (100x100 boxes, stroke-based so they draw on) ---------- */
+const ICONS={
+  person:['M50,26 a12,12 0 1,0 0.1,0','M50,38 C38,44 32,56 31,74 M50,38 C62,44 68,56 69,74','M36,56 L24,66 M64,56 L76,66'],
+  brain:['M38,26 C26,28 20,40 24,50 C18,58 22,70 32,73 C36,80 48,82 52,76 L52,30 C48,22 40,22 38,26','M62,26 C74,28 80,40 76,50 C82,58 78,70 68,73 C64,80 52,82 48,76','M40,40 C44,44 44,50 40,54 M60,44 C56,48 56,54 60,58'],
+  lightbulb:['M50,22 C34,22 26,36 30,48 C33,57 40,60 41,68 L59,68 C60,60 67,57 70,48 C74,36 66,22 50,22','M42,76 L58,76 M44,84 L56,84','M50,6 L50,14 M24,14 L30,20 M76,14 L70,20'],
+  gear:['M50,32 a18,18 0 1,0 0.1,0','M50,42 a8,8 0 1,0 0.1,0','M50,20 L50,28 M50,72 L50,80 M20,50 L28,50 M72,50 L80,50 M29,29 L35,35 M65,65 L71,71 M71,29 L65,35 M35,65 L29,71'],
+  cloud:['M30,64 C18,64 16,50 26,46 C24,34 38,28 46,34 C50,24 68,26 70,38 C82,38 84,54 74,58 C72,64 64,66 58,64 Z'],
+  server:['M28,24 L72,24 L72,42 L28,42 Z','M28,50 L72,50 L72,68 L28,68 Z','M36,33 L36,33.1 M36,59 L36,59.1','M58,33 L66,33 M58,59 L66,59'],
+  phone:['M36,14 L64,14 L64,86 L36,86 Z','M44,20 L56,20','M50,76 a3,3 0 1,0 0.1,0'],
+  laptop:['M30,26 L70,26 L70,58 L30,58 Z','M22,70 L78,70 L70,58 L30,58 Z','M44,64 L56,64'],
+  chart:['M24,20 L24,78 L80,78','M34,66 L34,50 M46,66 L46,38 M58,66 L58,44 M70,66 L70,30','M30,44 C42,36 54,28 74,22 M74,22 L66,22 M74,22 L74,30'],
+  magnifier:['M44,24 a20,20 0 1,0 0.1,0','M58,58 L78,78'],
+  heart:['M50,78 C20,56 24,32 38,28 C46,26 50,32 50,36 C50,32 54,26 62,28 C76,32 80,56 50,78'],
+  star:['M50,18 L58,40 L82,40 L62,54 L70,78 L50,63 L30,78 L38,54 L18,40 L42,40 Z'],
+  database:['M30,26 C30,18 70,18 70,26 C70,34 30,34 30,26','M30,26 L30,70 C30,78 70,78 70,70 L70,26','M30,46 C30,54 70,54 70,46'],
+  lock:['M34,46 L66,46 L66,80 L34,80 Z','M40,46 L40,34 C40,20 60,20 60,34 L60,46','M50,60 L50,70'],
+  rocket:['M50,14 C62,26 66,44 60,62 L40,62 C34,44 38,26 50,14','M40,62 L32,76 L42,70 M60,62 L68,76 L58,70','M46,70 C48,78 52,78 54,70','M50,36 a6,6 0 1,0 0.1,0'],
+  money:['M50,20 a30,30 0 1,0 0.1,0','M58,38 C54,32 42,33 42,41 C42,51 58,47 58,57 C58,65 45,66 41,60','M50,28 L50,36 M50,60 L50,70'],
+};
+
+/* ---------- mascot poses + fx ---------- */
 function pose(p){
   mascot.classList.remove('pointing','drawing','waving'); bubble.classList.remove('on');
   inner.classList.remove('sway','hop');
@@ -185,7 +210,7 @@ function pose(p){
   if(p==='happy'){ void inner.offsetWidth; inner.classList.add('hop'); }
 }
 let drawTimer=null;
-function drawingFlash(){        /* auto: pencil-in-hand while shapes appear */
+function drawingFlash(){
   if(!mascot.classList.contains('pointing')) mascot.classList.add('drawing');
   clearTimeout(drawTimer);
   drawTimer=setTimeout(()=>mascot.classList.remove('drawing'),900);
@@ -203,8 +228,8 @@ function sparkle(){
   }
 }
 
-/* ---------- voice: kokoro wavs from the server, browser TTS as fallback ---------- */
-let speaking=false, voice=null, VOICES=null;   /* VOICES = pre-generated fixed lines */
+/* ---------- voice ---------- */
+let speaking=false, voice=null, VOICES=null;
 function pickVoice(){
   const vs=speechSynthesis.getVoices(); if(!vs.length) return;
   const enOf=v=>String(v.lang||'').replace('_','-').toLowerCase();
@@ -230,17 +255,15 @@ function playWav(url){
   return new Promise(res=>{
     const a=new Audio(url);
     let done=false; const fin=()=>{ if(done)return; done=true; res(); };
-    a.onended=fin; a.onerror=fin;
-    a.play().catch(fin);
+    a.onended=fin; a.onerror=fin; a.play().catch(fin);
     setTimeout(fin,30000);
   });
 }
-async function speakLine(text,audioUrl){   /* mouth on, mic muted to itself, natural voice */
+async function speakLine(text,audioUrl){
   speaking=true; inner.classList.add('talking');
   if(audioUrl) await playWav(audioUrl); else await speakBrowser(text);
   speaking=false; inner.classList.remove('talking');
 }
-/* the SPEECH TRACK runs in parallel with drawing; lines stay in order on their own chain */
 let speechQ=Promise.resolve();
 function enqueueSpeech(text,audioUrl){
   speechQ=speechQ.then(async()=>{
@@ -252,41 +275,110 @@ function enqueueSpeech(text,audioUrl){
   return speechQ;
 }
 
-/* ---------- draw-on helpers ---------- */
+/* ---------- SLIDE ENGINE ---------- */
+const GAP=1700; let slides=[], cur=0, liveSlide=null;
+function slideTarget(){ if(!liveSlide) newSlide(''); return liveSlide.g; }
+function refreshDots(){
+  dotsEl.innerHTML=''; dotsEl.classList.toggle('on',slides.length>1);
+  slides.forEach((s,i)=>{ const d=document.createElement('div'); d.className='d'+(i===cur?' cur':'');
+    d.title=s.title||('slide '+(i+1)); d.onclick=()=>nav(i); dotsEl.appendChild(d); });
+}
+function nav(i,fx){
+  if(!slides.length) return;
+  cur=Math.max(0,Math.min(slides.length-1,i));
+  stage.style.transition='transform .55s cubic-bezier(.25,.8,.3,1)';
+  stage.style.transform=`translateX(${-cur*GAP}px)`;
+  refreshDots();
+  if(fx){ swipefx.textContent=fx>0?'➤':'⬅'; swipefx.style[fx>0?'right':'left']='40px'; swipefx.style[fx>0?'left':'right']='auto';
+    swipefx.classList.remove('go'); void swipefx.offsetWidth; swipefx.classList.add('go'); }
+}
+window.__nav=d=>nav(cur+d,d);
+function newSlide(title){
+  const g=document.createElementNS(SVG,'g');
+  g.setAttribute('transform',`translate(${slides.length*GAP},0)`);
+  stage.appendChild(g);
+  liveSlide={g,title}; slides.push(liveSlide);
+  nav(slides.length-1);
+  return liveSlide;
+}
+function resetShow(){ stage.innerHTML=''; stage.style.transition='none'; stage.style.transform='translateX(0)';
+  slides=[]; cur=0; liveSlide=null; refreshDots(); }
+
+/* ---------- draw-on helpers (double-stroke ink for a real pen feel) ---------- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function el(tag,attrs){const e=document.createElementNS(SVG,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
-async function drawOn(shape,dur){
+async function drawOn(shape,dur,target){
   drawingFlash();
-  stage.appendChild(shape);
+  (target||slideTarget()).appendChild(shape);
   let len=1200; try{len=shape.getTotalLength();}catch(e){}
   const d=dur||Math.min(2200,Math.max(500,len*1.15));
   shape.style.strokeDasharray=len; shape.style.strokeDashoffset=len;
   shape.style.transition=`stroke-dashoffset ${d}ms ease-in-out`;
   void shape.getBoundingClientRect();
   shape.style.strokeDashoffset=0;
-  await sleep(d+60);
+  await sleep(d+40);
+  /* ink echo: a faint second pass, like real pen pressure */
+  if(shape.tagName==='path'&&shape.getAttribute('stroke')&&len>60){
+    const echo=shape.cloneNode();
+    echo.style.strokeDasharray='none'; echo.style.strokeDashoffset='0'; echo.style.transition='none';
+    echo.setAttribute('opacity','0.28');
+    echo.setAttribute('stroke-width',Math.max(1,(parseFloat(shape.getAttribute('stroke-width')||4))*0.5));
+    echo.setAttribute('transform',(shape.getAttribute('transform')||'')+' translate(1.4,1.8)');
+    shape.parentNode.insertBefore(echo,shape);
+  }
 }
-async function writeOn(t,dur){
+async function writeOn(t,dur,target){
   drawingFlash();
-  stage.appendChild(t);
+  (target||slideTarget()).appendChild(t);
   const d=dur||Math.max(420,(t.textContent||'').length*46);
   t.style.clipPath='inset(-20% 100% -20% 0)'; t.style.transition=`clip-path ${d}ms steps(${Math.max(4,(t.textContent||'').length)})`;
   void t.getBoundingClientRect();
   t.style.clipPath='inset(-20% -5% -20% 0)';
-  await sleep(d+60);
+  await sleep(d+40);
+}
+function handText(attrs,content){
+  const t=el('text',attrs);
+  t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive";
+  t.textContent=content||''; return t;
 }
 
 /* ---------- op handlers ---------- */
 const H={
-  async say(c){ enqueueSpeech(String(c.text||''), c.audio||null); await sleep(250); }, /* NON-blocking: she talks while the next ops draw */
+  async slide(c){ await speechQ;
+    newSlide(c.title||'');
+    if(c.title){ const t=handText({x:960,y:150,'text-anchor':'middle','font-size':54,fill:'#1c1c1c',
+        transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`},c.title);
+      await writeOn(t);
+      const w=Math.min(680,(c.title||'').length*24), x1=960-w/2, x2=960+w/2;
+      await drawOn(el('path',{d:`M ${x1} 172 C ${x1+w*0.25} 165 ${x1+w*0.4} 180 ${960} 172 C ${x2-w*0.3} 165 ${x2-w*0.15} 179 ${x2} 171`,
+        fill:'none',stroke:'#e8730c','stroke-width':4,'stroke-linecap':'round'}),600); } },
+  async clear(){ await H.slide({title:''}); },        /* legacy */
+  async title(c){ await H.slide({title:c.text||''}); }, /* legacy */
+  async say(c){ enqueueSpeech(String(c.text||''), c.audio||null); await sleep(250); },
   async mascot(c){ pose(c.pose||'idle'); await sleep(300); },
-  async title(c){ const t=el('text',{x:960,y:150,'text-anchor':'middle','font-size':56,fill:'#1c1c1c',
-      transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`});
-    t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||'';
-    await writeOn(t);
-    const w=Math.min(680,(c.text||'').length*26), x1=960-w/2, x2=960+w/2;   /* squiggle underline */
-    await drawOn(el('path',{d:`M ${x1} 172 C ${x1+w*0.25} 165 ${x1+w*0.4} 180 ${960} 172 C ${x2-w*0.3} 165 ${x2-w*0.15} 179 ${x2} 171`,
-      fill:'none',stroke:'#e8730c','stroke-width':4,'stroke-linecap':'round'}),600); },
+  async icon(c){
+    const spec=ICONS[String(c.name||'').toLowerCase()]; if(!spec) return;
+    const sc=(+c.scale||1.4), color=c.color||'#1c1c1c';
+    const g=el('g',{transform:`translate(${(+c.x||800)-50*sc},${(+c.y||400)-50*sc}) scale(${sc}) rotate(${(Math.random()*3-1.5).toFixed(1)} 50 50)`});
+    slideTarget().appendChild(g);
+    for(const d of spec){
+      await drawOn(el('path',{d,fill:'none',stroke:color,'stroke-width':(4.2/Math.sqrt(sc)).toFixed(2),
+        'stroke-linecap':'round','stroke-linejoin':'round'}),Math.min(700,220+d.length*3),g);
+    } },
+  async note(c){
+    const {x=900,y=250,w=240,h=110}=c, tilt=(Math.random()*3-1.5).toFixed(1);
+    const g=el('g',{transform:`rotate(${tilt} ${x+w/2} ${y+h/2})`});
+    slideTarget().appendChild(g);
+    const bg=el('rect',{x,y,width:w,height:h,rx:6,fill:'#ffd9ad',stroke:'#e8730c','stroke-width':3});
+    bg.style.opacity=0; g.appendChild(bg);
+    bg.style.transition='opacity .4s'; void bg.getBoundingClientRect(); bg.style.opacity=0.92;
+    await sleep(320);
+    const words=String(c.text||'').split(' '); const lines=[]; let line='';
+    for(const wd of words){ if((line+' '+wd).trim().length>Math.floor(w/13)){ lines.push(line.trim()); line=wd; } else line+=' '+wd; }
+    if(line.trim()) lines.push(line.trim());
+    for(let i=0;i<lines.length&&i<4;i++){
+      await writeOn(handText({x:x+16,y:y+34+i*26,'font-size':22,fill:'#1c1c1c'},lines[i]),undefined,g);
+    } },
   async path(c){ await drawOn(el('path',{d:c.d,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c',
       'stroke-width':c.width||4,'stroke-linecap':'round','stroke-linejoin':'round'}),c.dur); },
   async circle(c){ await drawOn(el('circle',{cx:c.cx,cy:c.cy,r:c.r,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4}),c.dur); },
@@ -297,15 +389,12 @@ const H={
     const a=Math.atan2(y2-my,x2-mx), L=16;
     await drawOn(el('path',{d:`M ${x2-L*Math.cos(a-0.5)} ${y2-L*Math.sin(a-0.5)} L ${x2} ${y2} L ${x2-L*Math.cos(a+0.5)} ${y2-L*Math.sin(a+0.5)}`,
       fill:'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4,'stroke-linecap':'round'}),240); },
-  async text(c){ const t=el('text',{x:c.x,y:c.y,'font-size':c.size||30,fill:c.color||'#1c1c1c',
-      transform:`rotate(${(Math.random()*3-1.5).toFixed(2)} ${c.x} ${c.y})`});
-    t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||''; await writeOn(t); },
+  async text(c){ await writeOn(handText({x:c.x,y:c.y,'font-size':c.size||30,fill:c.color||'#1c1c1c',
+      transform:`rotate(${(Math.random()*3-1.5).toFixed(2)} ${c.x} ${c.y})`},c.text)); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
-  async clear(){ await speechQ;                                     /* let her finish the beat's line */
-    stage.style.transition='opacity .5s'; stage.style.opacity=0; await sleep(520);
-    stage.innerHTML=''; stage.style.transition='none'; stage.style.opacity=1; },
-  async done(){ await speechQ;                                      /* finish speaking first */
+  async done(){ await speechQ;
     pose('happy'); sparkle(); await sleep(700); say.classList.remove('on');
+    if(slides.length>1) setStatus('👋 wave your hand (or ←/→) to flip slides');
     const i=Math.floor(Math.random()*4);
     const url=VOICES&&VOICES.next?VOICES.next[i]:null;
     await speakLine(["Done! What should I draw next?","What else should I explain?","Ask me another one!","Next topic — I'm listening!"][i],url);
@@ -325,21 +414,68 @@ const q=[]; let playing=false;
 async function pump(){ if(playing) return; playing=true;
   while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} } }
   playing=false; }
-window.__inject=(ops)=>{ops.forEach(o=>q.push(o));pump();}; /* debug/test hook — same path as ws */
+window.__inject=(ops)=>{ops.forEach(o=>q.push(o));pump();};
 const ws=new WebSocket(`ws://${location.host}/ws`);
 ws.onmessage=ev=>{ try{ q.push(JSON.parse(ev.data)); pump(); }catch(e){} };
 
-/* ---------- camera (fullscreen AR) ---------- */
-let camStream=null;
+/* ---------- camera + HAND GESTURES (MediaPipe, fully local) ---------- */
+let camStream=null, landmarker=null, gestureOn=false;
+window.__gestureReady=false;
+async function initGestures(){
+  if(landmarker) return true;
+  try{
+    const mod=await import('/vendor/tasks-vision/vision_bundle.mjs');
+    const files=await mod.FilesetResolver.forVisionTasks('/vendor/tasks-vision/wasm');
+    landmarker=await mod.HandLandmarker.createFromOptions(files,{
+      baseOptions:{modelAssetPath:'/models/hand_landmarker.task'},
+      numHands:1, runningMode:'VIDEO'});
+    window.__gestureReady=true;
+    console.log('[gesture] hand tracking ready');
+    return true;
+  }catch(e){ console.warn('[gesture] init failed:',e.message); return false; }
+}
+function gestureLoop(){
+  if(gestureOn) return; gestureOn=true;
+  const hist=[]; let cool=0;
+  const tick=()=>{
+    if(!camStream){ gestureOn=false; return; }
+    if(landmarker && camvid.videoWidth){
+      try{
+        const r=landmarker.detectForVideo(camvid,performance.now());
+        if(r.landmarks && r.landmarks.length){
+          const x=r.landmarks[0][9].x;                      /* middle-finger base = stable */
+          const now=performance.now();
+          hist.push({t:now,x});
+          while(hist.length&&now-hist[0].t>450) hist.shift();
+          if(now>cool && hist.length>3){
+            const dx=hist[hist.length-1].x-hist[0].x;
+            if(Math.abs(dx)>0.22){
+              /* video is mirrored on screen: raw dx<0 = hand moved screen-right = NEXT */
+              nav(cur+(dx<0?1:-1), dx<0?1:-1);
+              cool=now+900; hist.length=0;
+            }
+          }
+        } else hist.length=0;
+      }catch(e){}
+    }
+    setTimeout(tick,66);
+  };
+  tick();
+}
 async function toggleCam(){
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null;
     stagewrap.classList.remove('camon'); document.getElementById('cam').classList.remove('on'); return; }
   try{
     camStream=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720},audio:false});
     camvid.srcObject=camStream; stagewrap.classList.add('camon'); document.getElementById('cam').classList.add('on');
+    initGestures().then(ok=>{ if(ok) gestureLoop(); });
   }catch(e){ setStatus('camera blocked: '+e.name); setTimeout(()=>setStatus(''),2500); }
 }
 document.getElementById('cam').onclick=toggleCam;
+window.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){ nav(cur+1,1); }
+  if(e.key==='ArrowLeft'){ nav(cur-1,-1); }
+});
 function grabFrame(){
   if(!camStream) return null;
   const c=document.createElement('canvas'); c.width=camvid.videoWidth||640; c.height=camvid.videoHeight||480;
@@ -356,11 +492,11 @@ async function sendUtterance(blob){
   disarm(); setStatus('👂 got it…');
   const fr=new FileReader();
   const dataUrl=await new Promise(r=>{ fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
-  stage.innerHTML=''; say.classList.remove('on');
+  resetShow(); say.classList.remove('on');
   await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({audio:dataUrl,frame:grabFrame()})});
 }
-window.__sendVoice=async(dataUrl)=>{ disarm(); stage.innerHTML='';
+window.__sendVoice=async(dataUrl)=>{ disarm(); resetShow();
   await fetch('/ask-voice',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({audio:dataUrl,frame:grabFrame()})}); };
 function vadLoop(){

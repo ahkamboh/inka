@@ -6,10 +6,19 @@
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": ["ai", "agent", "live", "whiteboard", "explainer", "mascot", "inkling"],
+  "keywords": [
+    "ai",
+    "agent",
+    "live",
+    "whiteboard",
+    "explainer",
+    "mascot",
+    "inkling"
+  ],
   "author": "Ali Hamza Kamboh (@ahkamboh)",
   "license": "MIT",
   "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.35",
     "express": "^4.21.0",
     "ws": "^8.18.0"
   }
