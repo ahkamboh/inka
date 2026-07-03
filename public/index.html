@@ -68,13 +68,12 @@
   #thinkbubble .dots circle:nth-child(2){animation-delay:.2s}
   #thinkbubble .dots circle:nth-child(3){animation-delay:.4s}
   @keyframes tdot{0%,100%{opacity:.25}50%{opacity:1}}
-  #armPoint,#armPencil{opacity:0;transition:opacity .3s}
+  #armPoint{opacity:0;transition:opacity .3s}
   .pointing #armPoint{opacity:1}
-  .pointing #armRest,.drawing #armRest,.waving #armRest{opacity:0}
-  .drawing #armPencil{opacity:1}
-  #armPencil{transform-box:fill-box;transform-origin:left center}
-  .drawing #armPencil{animation:scribble .5s ease-in-out infinite}
-  @keyframes scribble{0%,100%{transform:rotate(0deg)}50%{transform:rotate(6deg)}}
+  .pointing #armHold,.waving #armHold{opacity:0}
+  #armHold{opacity:1;transition:opacity .3s;transform-box:fill-box;transform-origin:left center}
+  .drawing #armHold{animation:scribble .5s ease-in-out infinite}
+  @keyframes scribble{0%,100%{transform:rotate(0deg)}50%{transform:rotate(7deg)}}
   #armWave{opacity:0;transform-box:fill-box;transform-origin:180px 300px}
   .waving #armWave{opacity:1;animation:wavearm .6s ease-in-out 3}
   @keyframes wavearm{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-24deg)}}
@@ -110,6 +109,11 @@
   <video id="camfull" autoplay playsinline muted></video>
   <svg id="stage" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
     <defs>
+      <radialGradient id="bodyGrad" cx="38%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#3a3835"/>
+        <stop offset="55%" stop-color="#232120"/>
+        <stop offset="100%" stop-color="#151413"/>
+      </radialGradient>
       <pattern id="grainDots" width="26" height="26" patternUnits="userSpaceOnUse">
         <circle cx="4" cy="6" r="1" fill="#1c1c1c" opacity="0.045"/>
         <circle cx="17" cy="19" r="1" fill="#1c1c1c" opacity="0.035"/>
@@ -123,26 +127,36 @@
       <ellipse id="shadow" cx="219" cy="395" rx="64" ry="10" fill="#1c1c1c" opacity="0.13"/>
       <g id="mascotInner" class="breathe">
         <path d="M140,202 C113,202 106,244 109,272 C110,288 124,296 140,296 C156,296 170,288 171,272 C174,244 167,202 140,202 Z"
-              fill="#1c1c1c" transform="scale(1.25)"/>
-        <g class="eyes"><circle cx="163" cy="298" r="6.5" fill="#fff"/><circle cx="186" cy="298" r="6.5" fill="#fff"/></g>
-        <circle cx="152" cy="313" r="5" fill="#e8730c" opacity="0.35"/>
-        <circle cx="197" cy="313" r="5" fill="#e8730c" opacity="0.35"/>
+              fill="url(#bodyGrad)" transform="scale(1.25)"/>
+        <ellipse cx="158" cy="272" rx="16" ry="24" fill="#ffffff" opacity="0.07" transform="rotate(-18 158 272)"/>
+        <g transform="translate(150,246) rotate(-14)">
+          <ellipse cx="22" cy="0" rx="26" ry="13" fill="#e8730c"/>
+          <ellipse cx="14" cy="-6" rx="16" ry="8" fill="#f28a2e"/>
+          <circle cx="22" cy="-12" r="4" fill="#1c1c1c"/>
+        </g>
+        <g class="eyes"><circle cx="163" cy="298" r="7" fill="#fff"/><circle cx="186" cy="298" r="7" fill="#fff"/></g>
+        <circle cx="151" cy="314" r="5.5" fill="#ff9a4d" opacity="0.5"/>
+        <circle cx="198" cy="314" r="5.5" fill="#ff9a4d" opacity="0.5"/>
         <path id="mouth" d="M164,317 Q175,325 187,317" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
-        <path d="M166,368 L164,388 M184,368 L186,388 M156,388 L172,388 M178,388 L194,388"
+        <path d="M166,368 L164,384 M184,368 L186,384"
               fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
-        <path id="armRest" d="M143,300 C132,314 132,330 140,342" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+        <rect x="153" y="382" width="24" height="9" rx="4.5" fill="#e8730c"/>
+        <rect x="177" y="382" width="24" height="9" rx="4.5" fill="#e8730c"/>
         <path id="armPoint" d="M205,305 C228,296 248,290 268,287" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
         <g id="armWave">
           <path d="M200,305 C218,290 226,272 228,252" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
           <path d="M222,258 L228,252 L234,258 M224,247 L228,252 L233,248" fill="none" stroke="#1c1c1c" stroke-width="2.6" stroke-linecap="round"/>
         </g>
-        <g id="armPencil">
-          <path d="M203,308 C222,306 238,310 250,318" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
-          <g transform="translate(246,306) rotate(38)">
-            <rect x="0" y="0" width="34" height="9" rx="2" fill="#e8730c"/>
-            <path d="M34,0 L42,4.5 L34,9 Z" fill="#1c1c1c"/>
-            <rect x="-5" y="0" width="5" height="9" rx="2" fill="#7a7164"/>
+        <g id="armHold">
+          <path d="M203,308 C220,304 234,300 246,296" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+          <g transform="translate(238,300) rotate(-52)">
+            <rect x="0" y="-4.5" width="40" height="10" rx="2.5" fill="#e8730c"/>
+            <rect x="0" y="-4.5" width="40" height="4" rx="2" fill="#f5a55c" opacity="0.7"/>
+            <path d="M40,-4.5 L49,0.5 L40,5.5 Z" fill="#f0cfa0"/>
+            <path d="M46.6,-0.8 L49,0.5 L46.6,1.9 Z" fill="#1c1c1c"/>
+            <rect x="-6" y="-4.5" width="6" height="10" rx="2" fill="#c95f5f"/>
           </g>
+          <circle cx="242" cy="299" r="5.5" fill="#1c1c1c"/>
         </g>
       </g>
       <g id="thinkbubble" transform="translate(196,150)">
@@ -277,7 +291,7 @@ function enqueueSpeech(text,audioUrl){
 
 /* ---------- SLIDE ENGINE ---------- */
 const GAP=1700; let slides=[], cur=0, liveSlide=null;
-function slideTarget(){ if(!liveSlide) newSlide(''); return liveSlide.g; }
+function slideTarget(){ if(!liveSlide) newSlide(''); return liveSlide.content; }
 function refreshDots(){
   dotsEl.innerHTML=''; dotsEl.classList.toggle('on',slides.length>1);
   slides.forEach((s,i)=>{ const d=document.createElement('div'); d.className='d'+(i===cur?' cur':'');
@@ -294,12 +308,26 @@ function nav(i,fx){
 }
 window.__nav=d=>nav(cur+d,d);
 function newSlide(title){
+  centerSlide(liveSlide);                       /* finished slide gets centered */
   const g=document.createElementNS(SVG,'g');
   g.setAttribute('transform',`translate(${slides.length*GAP},0)`);
+  const head=document.createElementNS(SVG,'g'), content=document.createElementNS(SVG,'g');
+  g.appendChild(head); g.appendChild(content);
   stage.appendChild(g);
-  liveSlide={g,title}; slides.push(liveSlide);
+  liveSlide={g,head,content,title}; slides.push(liveSlide);
   nav(slides.length-1);
   return liveSlide;
+}
+/* equal margins: measure the slide's drawn content and centre it in the free region */
+function centerSlide(s){
+  if(!s) return;
+  let bb; try{ bb=s.content.getBBox(); }catch(e){ return; }
+  if(!bb || bb.width<4 || bb.height<4) return;
+  const x0=380, x1=1545, y0=s.title?215:120, y1=845;
+  const dx=((x0+x1)/2)-(bb.x+bb.width/2);
+  const dy=((y0+y1)/2)-(bb.y+bb.height/2);
+  s.content.style.transition='transform .7s cubic-bezier(.3,.8,.3,1)';
+  s.content.style.transform=`translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`;
 }
 function resetShow(){ stage.innerHTML=''; stage.style.transition='none'; stage.style.transform='translateX(0)';
   slides=[]; cur=0; liveSlide=null; refreshDots(); }
@@ -345,13 +373,13 @@ function handText(attrs,content){
 /* ---------- op handlers ---------- */
 const H={
   async slide(c){ await speechQ;
-    newSlide(c.title||'');
+    const sl=newSlide(c.title||'');
     if(c.title){ const t=handText({x:960,y:150,'text-anchor':'middle','font-size':54,fill:'#1c1c1c',
         transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`},c.title);
-      await writeOn(t);
+      await writeOn(t,undefined,sl.head);
       const w=Math.min(680,(c.title||'').length*24), x1=960-w/2, x2=960+w/2;
       await drawOn(el('path',{d:`M ${x1} 172 C ${x1+w*0.25} 165 ${x1+w*0.4} 180 ${960} 172 C ${x2-w*0.3} 165 ${x2-w*0.15} 179 ${x2} 171`,
-        fill:'none',stroke:'#e8730c','stroke-width':4,'stroke-linecap':'round'}),600); } },
+        fill:'none',stroke:'#e8730c','stroke-width':4,'stroke-linecap':'round'}),600,sl.head); } },
   async clear(){ await H.slide({title:''}); },        /* legacy */
   async title(c){ await H.slide({title:c.text||''}); }, /* legacy */
   async say(c){ enqueueSpeech(String(c.text||''), c.audio||null); await sleep(250); },
@@ -393,6 +421,7 @@ const H={
       transform:`rotate(${(Math.random()*3-1.5).toFixed(2)} ${c.x} ${c.y})`},c.text)); },
   async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
   async done(){ await speechQ;
+    centerSlide(liveSlide);
     pose('happy'); sparkle(); await sleep(700); say.classList.remove('on');
     if(slides.length>1) setStatus('👋 wave your hand (or ←/→) to flip slides');
     const i=Math.floor(Math.random()*4);
