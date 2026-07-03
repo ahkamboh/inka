@@ -115,7 +115,7 @@ for (const sx of [-1, 1]) {
 
 // ---- arms (groups pivot AT the shoulder; capsule lies along +X so rotation reads naturally) ----
 function makeArm(side) { // side: -1 left, +1 right
-  const g = new THREE.Group(); g.position.set(side * 0.21, 1.02, 0.02);
+  const g = new THREE.Group(); g.position.set(side * 0.21, 1.02, 0.06);
   const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.034, 0.26, 6, 12), skin);
   arm.rotation.z = Math.PI / 2; arm.position.x = side * 0.16;
   const hand = new THREE.Mesh(new THREE.SphereGeometry(0.052, 14, 12), skin);
@@ -158,7 +158,7 @@ scene.add(shadow);
 
 /* ---- pose state machine (targets; everything lerps — no compounding rotations) ---- */
 const T = { idle:  { bodyZ: 0.00, headZ: 0.00, armRZ: 0.25, armRY: 0.00, rigY: 0.05, scrib: 0 },
-            think: { bodyZ: -0.06, headZ: 0.14, armRZ: 0.85, armRY: -0.45, rigY: 0.02, scrib: 0 },
+            think: { bodyZ: -0.06, headZ: 0.14, armRZ: 0.45, armRY: -1.05, rigY: 0.02, scrib: 0 },
             point: { bodyZ: 0.06, headZ: -0.08, armRZ: 0.10, armRY: -0.45, rigY: 0.30, scrib: 0 },
             draw:  { bodyZ: 0.09, headZ: -0.10, armRZ: -0.15, armRY: -0.55, rigY: 0.34, scrib: 1 },
             wave:  { bodyZ: -0.04, headZ: 0.10, armRZ: 1.2, armRY: -0.3, rigY: 0.02, scrib: 0 },
