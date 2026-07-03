@@ -1,0 +1,16 @@
+{
+  "name": "inkling-live",
+  "version": "0.1.0",
+  "description": "A live hand-drawn explainer mascot — ask a topic, your AI agent draws it stroke-by-stroke on screen in real time. Record it, post it.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["ai", "agent", "live", "whiteboard", "explainer", "mascot", "inkling"],
+  "author": "Ali Hamza Kamboh (@ahkamboh)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  }
+}

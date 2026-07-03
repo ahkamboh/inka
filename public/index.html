@@ -1,0 +1,167 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>inkling-live</title>
+<style>
+  :root{ --ink:#1c1c1c; --accent:#e8730c; --muted:#7a7164; --paper:#ffffff; }
+  html,body{margin:0;height:100%;background:#efece6;overflow:hidden}
+  body{display:grid;place-items:center;font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
+  #stagewrap{position:relative;width:min(96vw,calc(96vh*16/9));aspect-ratio:16/9;background:var(--paper);
+    border-radius:14px;box-shadow:0 18px 70px rgba(30,25,15,.18);overflow:hidden}
+  svg{display:block;width:100%;height:100%}
+  .hand{font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
+
+  /* ---- topic bar (auto-hides while drawing so recordings stay clean) ---- */
+  #bar{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:5;
+    transition:opacity .5s, transform .5s}
+  #bar.hidden{opacity:0;transform:translateX(-50%) translateY(-56px);pointer-events:none}
+  #topic{width:min(520px,60vw);padding:12px 18px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;
+    background:#fff;outline:none;font-family:inherit;color:var(--ink)}
+  #go{padding:12px 22px;font-size:17px;border:2.5px solid var(--ink);border-radius:12px;background:var(--ink);
+    color:#fff;cursor:pointer;font-family:inherit}
+  #go:hover{background:#000}
+  #hint{position:absolute;bottom:14px;right:20px;font-size:13px;color:#b9b2a6;z-index:5;transition:opacity .5s}
+  .hidden{opacity:0;pointer-events:none}
+
+  /* ---- mascot ---- */
+  .breathe{transform-box:fill-box;transform-origin:center bottom;animation:br 3s ease-in-out infinite}
+  @keyframes br{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.035)}}
+  .eyes{transform-box:fill-box;transform-origin:center;animation:blink 3.6s infinite}
+  @keyframes blink{0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.08)}97%{transform:scaleY(1)}}
+  .hop{animation:hop .55s ease-in-out 2}
+  @keyframes hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-26px)}}
+  .sway{transform-box:fill-box;transform-origin:center bottom;animation:sway 1.6s ease-in-out infinite}
+  @keyframes sway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+  #thinkbubble{opacity:0;transition:opacity .4s}
+  #thinkbubble.on{opacity:1}
+  #thinkbubble .dots circle{animation:tdot 1.2s infinite}
+  #thinkbubble .dots circle:nth-child(2){animation-delay:.2s}
+  #thinkbubble .dots circle:nth-child(3){animation-delay:.4s}
+  @keyframes tdot{0%,100%{opacity:.25}50%{opacity:1}}
+  #armPoint{opacity:0;transition:opacity .3s}
+  .pointing #armPoint{opacity:1}
+  .pointing #armRest{opacity:0}
+
+  /* ---- speech caption ---- */
+  #saywrap{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);max-width:72%;z-index:4;
+    background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 22px;font-size:24px;color:var(--ink);
+    box-shadow:5px 6px 0 rgba(28,28,28,.14);opacity:0;transition:opacity .3s}
+  #saywrap.on{opacity:1}
+</style></head>
+<body>
+<div id="stagewrap">
+  <div id="bar">
+    <input id="topic" class="hand" placeholder="ask me anything… (e.g. how do neural nets learn?)" autocomplete="off">
+    <button id="go">draw it</button>
+  </div>
+
+  <svg id="stage" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1600" height="900" fill="#ffffff"/>
+    <g id="drawing"></g>
+
+    <!-- mascot (inkling bean, lives on the left) -->
+    <g id="mascot" transform="translate(60,470)">
+      <g id="mascotInner" class="breathe">
+        <path d="M140,202 C113,202 106,244 109,272 C110,288 124,296 140,296 C156,296 170,288 171,272 C174,244 167,202 140,202 Z"
+              fill="#1c1c1c" transform="scale(1.25)"/>
+        <g class="eyes"><circle cx="163" cy="298" r="6.5" fill="#fff"/><circle cx="186" cy="298" r="6.5" fill="#fff"/></g>
+        <path id="mouth" d="M164,317 Q175,325 187,317" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
+        <path d="M166,368 L164,388 M184,368 L186,388 M156,388 L172,388 M178,388 L194,388"
+              fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+        <path id="armRest" d="M143,300 C132,314 132,330 140,342" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+        <path id="armPoint" d="M205,305 C228,296 248,290 268,287" fill="none" stroke="#1c1c1c" stroke-width="3.6" stroke-linecap="round"/>
+      </g>
+      <g id="thinkbubble" transform="translate(196,150)">
+        <circle cx="6" cy="66" r="7" fill="none" stroke="#1c1c1c" stroke-width="2.4"/>
+        <circle cx="26" cy="42" r="10" fill="none" stroke="#1c1c1c" stroke-width="2.6"/>
+        <ellipse cx="72" cy="8" rx="52" ry="30" fill="none" stroke="#1c1c1c" stroke-width="3"/>
+        <g class="dots" fill="#1c1c1c"><circle cx="52" cy="8" r="4.5"/><circle cx="72" cy="8" r="4.5"/><circle cx="92" cy="8" r="4.5"/></g>
+      </g>
+    </g>
+  </svg>
+
+  <div id="saywrap" class="hand"><span id="saytext"></span></div>
+  <div id="hint">inkling-live · your agent is the artist</div>
+</div>
+
+<script>
+const SVG='http://www.w3.org/2000/svg';
+const stage=document.getElementById('drawing');
+const mascot=document.getElementById('mascot');
+const inner=document.getElementById('mascotInner');
+const bubble=document.getElementById('thinkbubble');
+const say=document.getElementById('saywrap'), sayText=document.getElementById('saytext');
+const bar=document.getElementById('bar'), hint=document.getElementById('hint');
+
+/* ---------- mascot poses ---------- */
+function pose(p){
+  mascot.classList.remove('pointing'); bubble.classList.remove('on');
+  inner.classList.remove('sway','hop');
+  if(p==='think'){ bubble.classList.add('on'); inner.classList.add('sway'); }
+  if(p==='point'){ mascot.classList.add('pointing'); }
+  if(p==='happy'){ void inner.offsetWidth; inner.classList.add('hop'); }
+}
+
+/* ---------- draw-on helpers ---------- */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function el(tag,attrs){const e=document.createElementNS(SVG,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+async function drawOn(shape,dur){
+  stage.appendChild(shape);
+  let len=1200; try{len=shape.getTotalLength();}catch(e){}
+  const d=dur||Math.min(2200,Math.max(500,len*1.15));
+  shape.style.strokeDasharray=len; shape.style.strokeDashoffset=len;
+  shape.style.transition=`stroke-dashoffset ${d}ms ease-in-out`;
+  void shape.getBoundingClientRect();
+  shape.style.strokeDashoffset=0;
+  await sleep(d+60);
+}
+async function writeOn(t,dur){
+  stage.appendChild(t);
+  const d=dur||Math.max(420,(t.textContent||'').length*46);
+  t.style.clipPath='inset(-20% 100% -20% 0)'; t.style.transition=`clip-path ${d}ms steps(${Math.max(4,(t.textContent||'').length)})`;
+  void t.getBoundingClientRect();
+  t.style.clipPath='inset(-20% -5% -20% 0)';
+  await sleep(d+60);
+}
+
+/* ---------- op handlers (the protocol) ---------- */
+const H={
+  async say(c){ sayText.textContent=''; say.classList.add('on');
+    for(const ch of String(c.text||'')){ sayText.textContent+=ch; await sleep(24);} await sleep(500); },
+  async mascot(c){ pose(c.pose||'idle'); await sleep(300); },
+  async title(c){ const t=el('text',{x:960,y:150,'text-anchor':'middle','font-size':56,fill:'#1c1c1c',
+      transform:`rotate(${(Math.random()*2-1).toFixed(2)} 960 150)`}); t.classList.add('hand');
+    t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||''; await writeOn(t); },
+  async path(c){ await drawOn(el('path',{d:c.d,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c',
+      'stroke-width':c.width||4,'stroke-linecap':'round','stroke-linejoin':'round'}),c.dur); },
+  async circle(c){ await drawOn(el('circle',{cx:c.cx,cy:c.cy,r:c.r,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4}),c.dur); },
+  async rect(c){ await drawOn(el('rect',{x:c.x,y:c.y,width:c.w,height:c.h,rx:c.rx??12,fill:c.fill||'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4}),c.dur); },
+  async arrow(c){ const {x1,y1,x2,y2}=c, mx=(+x1+ +x2)/2+((+y2-+y1)*0.06), my=(+y1+ +y2)/2-((+x2-+x1)*0.06);
+    await drawOn(el('path',{d:`M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`,fill:'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4,'stroke-linecap':'round'}),c.dur);
+    const a=Math.atan2(y2-my,x2-mx), L=16;
+    await drawOn(el('path',{d:`M ${x2-L*Math.cos(a-0.5)} ${y2-L*Math.sin(a-0.5)} L ${x2} ${y2} L ${x2-L*Math.cos(a+0.5)} ${y2-L*Math.sin(a+0.5)}`,
+      fill:'none',stroke:c.stroke||'#1c1c1c','stroke-width':c.width||4,'stroke-linecap':'round'}),240); },
+  async text(c){ const t=el('text',{x:c.x,y:c.y,'font-size':c.size||30,fill:c.color||'#1c1c1c',
+      transform:`rotate(${(Math.random()*3-1.5).toFixed(2)} ${c.x} ${c.y})`});
+    t.style.fontFamily="'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive"; t.textContent=c.text||''; await writeOn(t); },
+  async pause(c){ await sleep(Math.min(3000,c.ms||700)); },
+  async clear(){ stage.style.transition='opacity .5s'; stage.style.opacity=0; await sleep(520);
+    stage.innerHTML=''; stage.style.transition='none'; stage.style.opacity=1; },
+  async done(){ pose('happy'); await sleep(1200); say.classList.remove('on'); bar.classList.remove('hidden'); hint.classList.remove('hidden'); },
+  async _status(c){ if(c.state==='thinking'){ pose('think'); bar.classList.add('hidden'); hint.classList.add('hidden'); } },
+};
+
+/* ---------- queue player: ops arrive fast, we PLAY them at drawing pace ---------- */
+const q=[]; let playing=false;
+async function pump(){ if(playing) return; playing=true;
+  while(q.length){ const c=q.shift(); const h=H[c.op]; if(h){ try{ await h(c);}catch(e){console.warn(e);} } }
+  playing=false; }
+
+/* ---------- wiring ---------- */
+const ws=new WebSocket(`ws://${location.host}/ws`);
+ws.onmessage=ev=>{ try{ q.push(JSON.parse(ev.data)); pump(); }catch(e){} };
+async function ask(){ const v=document.getElementById('topic').value.trim(); if(!v) return;
+  stage.innerHTML=''; say.classList.remove('on');
+  await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:v})}); }
+document.getElementById('go').onclick=ask;
+document.getElementById('topic').addEventListener('keydown',e=>{ if(e.key==='Enter') ask(); });
+</script>
+</body></html>
