@@ -32,7 +32,8 @@ const fill = new THREE.PointLight(0xffe6c8, 0.45, 12); fill.position.set(-1.6, 0
 // materials
 const skin  = new THREE.MeshStandardMaterial({ color: 0xf6cfae, roughness: 0.65 });
 const hairM = new THREE.MeshStandardMaterial({ color: 0x3a2a1f, roughness: 0.55 });
-const dress = new THREE.MeshStandardMaterial({ color: 0xe8730c, roughness: 0.6 });
+const dress = new THREE.MeshStandardMaterial({ color: 0xf06ba8, roughness: 0.6 });   // pink!
+const pinkLit = new THREE.MeshStandardMaterial({ color: 0xff9ec4, roughness: 0.5 });
 const cream = new THREE.MeshStandardMaterial({ color: 0xfff6ea, roughness: 0.6 });
 const orange = new THREE.MeshStandardMaterial({ color: 0xe8730c, roughness: 0.55 });
 const orangeLit = new THREE.MeshStandardMaterial({ color: 0xf28a2e, roughness: 0.5 });
@@ -77,12 +78,12 @@ lockL.position.set(-0.40, -0.05, 0.02); lockL.rotation.z = 0.12; head.add(lockL)
 const lockR = lockL.clone(); lockR.position.x = 0.40; lockR.rotation.z = -0.12; head.add(lockR);
 const pony = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.4, 6, 12), hairM);
 pony.position.set(0.30, -0.18, -0.28); pony.rotation.z = -0.45; pony.rotation.x = 0.3; head.add(pony);
-const ponyTie = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.018, 8, 16), orange);
+const ponyTie = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.018, 8, 16), pinkLit);
 ponyTie.position.set(0.235, 0.02, -0.24); ponyTie.rotation.y = 0.8; head.add(ponyTie);
 // beret (brand!)
 const beret = new THREE.Group();
-const bcap = new THREE.Mesh(new THREE.SphereGeometry(0.30, 30, 18), orange); bcap.scale.set(1.15, 0.36, 1.15);
-const btop = new THREE.Mesh(new THREE.SphereGeometry(0.19, 22, 14), orangeLit); btop.scale.set(1, 0.42, 1); btop.position.y = 0.05;
+const bcap = new THREE.Mesh(new THREE.SphereGeometry(0.30, 30, 18), dress); bcap.scale.set(1.15, 0.36, 1.15);
+const btop = new THREE.Mesh(new THREE.SphereGeometry(0.19, 22, 14), pinkLit); btop.scale.set(1, 0.42, 1); btop.position.y = 0.05;
 const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.028, 0.08, 10), dark); stem.position.y = 0.1;
 beret.add(bcap, btop, stem);
 beret.position.set(-0.13, 0.40, 0.0); beret.rotation.z = 0.30; beret.rotation.x = -0.05;
@@ -94,7 +95,7 @@ for (const sx of [-1, 1]) {
   const w = new THREE.Mesh(new THREE.SphereGeometry(0.095, 22, 18), white); w.scale.set(1, 1.15, 0.55);
   const i = new THREE.Mesh(new THREE.SphereGeometry(0.052, 18, 14), iris); i.position.z = 0.045; i.scale.set(1, 1.2, 0.6);
   const g = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), white); g.position.set(0.02, 0.03, 0.085);
-  e.add(w, i, g); e.position.set(sx * 0.16, 0.02, 0.375);
+  e.add(w, i, g); e.position.set(sx * 0.16, 0.02, 0.375); e.scale.set(1.09, 1.09, 1.09);
   eyes.add(e);
 }
 // brows
@@ -108,7 +109,7 @@ const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.018, 10, 24, Math.
 mouth.position.set(0, -0.16, 0.40); mouth.rotation.z = Math.PI; mouth.rotation.x = -0.35; mouth.scale.set(1, 0.8, 0.5);
 head.add(mouth);
 for (const sx of [-1, 1]) {
-  const bl = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 12), new THREE.MeshStandardMaterial({ color: 0xff9d8a, roughness: 1 }));
+  const bl = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 12), new THREE.MeshStandardMaterial({ color: 0xff85ac, roughness: 1 }));
   bl.position.set(sx * 0.26, -0.10, 0.30); bl.scale.set(1, 0.7, 0.4);
   head.add(bl);
 }
@@ -141,7 +142,7 @@ armR.add(pencil);
 for (const sx of [-1, 1]) {
   const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.042, 0.16, 6, 10), skin);
   leg.position.set(sx * 0.11, 0.17, 0); rig.add(leg);
-  const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12), orange);
+  const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12), dress);
   shoe.scale.set(1.15, 0.55, 1.75); shoe.position.set(sx * 0.11, 0.035, 0.05); rig.add(shoe);
 }
 
