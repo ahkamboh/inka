@@ -1,4 +1,4 @@
-// inkling-live — local server: hears you (Whisper, local), sees you (camera frame →
+// inka — local server: hears you (Whisper, local), sees you (camera frame →
 // Claude vision), and streams the agent's NDJSON draw-commands over WebSocket to the
 // stage, which draws them stroke-by-stroke. Record the window = the content. No API key —
 // it drives your existing `claude` CLI.
@@ -12,7 +12,7 @@ const os = require('os');
 const PORT = process.env.PORT || 4141;
 const MODEL = process.env.LIVE_MODEL || 'opus'; // smarter explainers; override with LIVE_MODEL (sonnet = faster first stroke)
 const LOG = path.join(__dirname, 'last-run.ndjson');
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'inkling-live-'));
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'inka-'));
 
 const app = express();
 app.use(express.json({ limit: '40mb' }));
@@ -22,7 +22,7 @@ app.use('/models', express.static(path.join(__dirname, 'models')));
 app.use('/vendor/three', express.static(path.join(__dirname, 'node_modules', 'three', 'build')));
 
 const server = app.listen(PORT, () =>
-  console.log(`👁  inkling-live stage → http://localhost:${PORT}  (model: ${MODEL})`));
+  console.log(`👁  inka stage → http://localhost:${PORT}  (model: ${MODEL})`));
 const wss = new WebSocketServer({ server, path: '/ws' });
 const clients = new Set();
 wss.on('connection', ws => { clients.add(ws); ws.on('close', () => clients.delete(ws)); });
@@ -86,7 +86,7 @@ function ttsGen(text) { // -> Promise<audio url | null>
 }
 // fixed lines (greeting / next prompts) — pre-generate once so they play instantly
 const FIXED = {
-  greeting: "Hey! I'm inkling. Ask me anything — just talk, and I'll draw it for you!",
+  greeting: "Hey! I'm Inka. Ask me anything — just talk, and I'll draw it for you!",
   next1: 'Done! What should I draw next?', next2: 'What else should I explain?',
   next3: 'Ask me another one!', next4: "Next topic — I'm listening!",
 };

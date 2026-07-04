@@ -1,7 +1,7 @@
 {
-  "name": "inkling-live",
+  "name": "inka",
   "version": "0.1.0",
-  "description": "A live hand-drawn explainer mascot — ask a topic, your AI agent draws it stroke-by-stroke on screen in real time. Record it, post it.",
+  "description": "inka \u2014 a little AI teacher who draws hand-drawn slides around you in realtime while she talks. Local ears/voice/eyes; hands-free.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
