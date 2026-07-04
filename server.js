@@ -79,7 +79,7 @@ function ttsGen(text) { // -> Promise<audio url | null>
   if (!ttsReady) return Promise.resolve(null);
   const id = ++ttsSeq, file = `say-${id}.wav`;
   return new Promise(resolve => {
-    const to = setTimeout(() => { ttsCbs.delete(id); resolve(null); }, 6000); // never stall the show
+    const to = setTimeout(() => { ttsCbs.delete(id); resolve(null); }, 12000); // never stall the show
     ttsCbs.set(id, m => { clearTimeout(to); resolve(m.ok ? '/audio/' + file : null); });
     tts.stdin.write(JSON.stringify({ id, text, path: path.join(AUDIO_DIR, file) }) + '\n');
   });
@@ -243,10 +243,12 @@ function runBrain(topic, framePath, re) {
       if (!started) { started = true; cast({ op: '_status', state: 'drawing' }); }
       if (cmd.op === 'done') sentDone = true;
       fs.appendFileSync(LOG, JSON.stringify(cmd) + '\n');
-      // STRICT ORDER: every op flows through one chain; a say waits for its wav,
-      // everything after it queues behind — so narration reaches the stage WITH its beat.
+      // STRICT ORDER, PARALLEL PREP: wav generation for every say starts the moment
+      // it is parsed (concurrently, ahead of playback); the chain only orders casting —
+      // so draw ops are never stalled waiting for a line that hasn't started generating.
+      const wavP = (cmd.op === 'say' && ttsReady) ? ttsGen(String(cmd.text || '')) : null;
       sayChain = sayChain.then(async () => {
-        if (cmd.op === 'say' && ttsReady) cmd.audio = await ttsGen(String(cmd.text || ''));
+        if (wavP) cmd.audio = await wavP;
         cast(cmd);
       });
     }

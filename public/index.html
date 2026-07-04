@@ -281,9 +281,9 @@ function playWav(url){
   });
 }
 async function speakLine(text,audioUrl){
-  speaking=true; inner.classList.add('talking'); if(window.M3D) M3D.talking(true);
+  speaking=true; window.__speakingNow=true; inner.classList.add('talking'); if(window.M3D) M3D.talking(true);
   if(audioUrl) await playWav(audioUrl); else await speakBrowser(text);
-  speaking=false; inner.classList.remove('talking'); if(window.M3D) M3D.talking(false);
+  speaking=false; window.__speakingNow=false; inner.classList.remove('talking'); if(window.M3D) M3D.talking(false);
 }
 let lineDone=Promise.resolve();   // resolves when the current narration line ends
 
