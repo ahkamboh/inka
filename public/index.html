@@ -12,9 +12,9 @@
   .hand{font-family:'Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}
   .hidden{opacity:0;pointer-events:none}
 
-  #splash{position:absolute;inset:0;z-index:9;background:var(--paper);display:grid;place-items:center;cursor:pointer;transition:opacity .6s}
+  #splash{position:absolute;inset:0;z-index:9;background:rgba(20,16,12,.34);display:grid;place-items:center;cursor:pointer;transition:opacity .6s;color:#fff}
   #splash.gone{opacity:0;pointer-events:none}
-  #splash .inner{text-align:center;color:var(--ink)}
+  #splash .inner{text-align:center;color:#fff;text-shadow:0 2px 10px #000a}
   #splash h1{font-size:44px;margin:0 0 10px;font-weight:600}
   #splash p{font-size:20px;color:var(--muted);margin:6px 0}
   #tapdot{width:92px;height:92px;border-radius:50%;border:4px solid var(--ink);display:grid;place-items:center;
@@ -101,10 +101,8 @@
 <body>
 <div id="stagewrap">
   <div id="splash"><div class="inner">
-    <h1>👁 inkling-live</h1>
-    <p>your agent draws slides while you talk — flip them with a wave of your hand</p>
-    <p style="font-size:16px">tap once to wake it up (mic + voice)</p>
-    <div id="tapdot">▶</div>
+    <div id="tapdot">🎙</div>
+    <p style="font-size:18px;margin-top:14px">click anywhere to go live</p>
   </div></div>
 
   <div id="status" class="hand"></div>
@@ -643,9 +641,13 @@ function vadLoop(){
   },80);
 }
 
-/* ---------- one tap → hands-free forever ---------- */
-splash.addEventListener('click', async ()=>{
+/* ---------- camera opens on load; first click/key/touch arms mic+voice ---------- */
+window.addEventListener('load', ()=>{ toggleCam(); });   // live camera immediately, no button
+let woke=false;
+async function wake(){
+  if(woke) return; woke=true;
   splash.classList.add('gone');
+  if(!camStream) await toggleCam();                      // ensure camera is on
   try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
   catch(e){ setStatus('mic blocked — allow the microphone and reload'); return; }
   const ctx=new (window.AudioContext||window.webkitAudioContext)();
@@ -655,6 +657,7 @@ splash.addEventListener('click', async ()=>{
   pose('wave');
   await speakLine(GREETING, VOICES&&VOICES.greeting?VOICES.greeting:null);
   armListen();
-});
+}
+['click','keydown','touchstart'].forEach(ev=>window.addEventListener(ev, wake, {once:false}));
 </script>
 </body></html>
